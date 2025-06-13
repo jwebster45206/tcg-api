@@ -62,11 +62,12 @@ func TestServerStartup(t *testing.T) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	if server == nil {
-		t.Error("server should not be nil")
+	// Test that the server has the expected configuration
+	if server.Handler != mux {
+		t.Error("server handler should match the mux we created")
 	}
 
-	if server.Handler == nil {
-		t.Error("server handler should not be nil")
+	if server.Addr != ":0" {
+		t.Error("server address should be :0")
 	}
 }
