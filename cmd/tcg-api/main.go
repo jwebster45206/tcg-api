@@ -49,9 +49,13 @@ func main() {
 
 func setupRoutes() *http.ServeMux {
 	mux := http.NewServeMux()
-	
+
 	// Health endpoint
 	mux.HandleFunc("/health", handlers.HealthHandler)
-	
+
+	// Cards endpoints
+	mux.HandleFunc("/cards", handlers.CardsHandler)
+	mux.HandleFunc("/cards/", handlers.CardsHandler)
+
 	return mux
 }
