@@ -56,36 +56,30 @@ func CardsHandler(w http.ResponseWriter, r *http.Request) {
 
 // listCards handles GET /cards
 func listCards(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
 	response := ErrorResponse{
 		Error:   "not_implemented",
 		Message: "List cards endpoint not implemented yet",
 	}
-	json.NewEncoder(w).Encode(response)
+	writeJSONResponse(w, http.StatusNotImplemented, response)
 }
 
 // getCard handles GET /cards/{id}
 func getCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	if _, err := uuid.Parse(cardID); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
 		response := ErrorResponse{
 			Error:   "invalid_id",
 			Message: "Invalid card ID format",
 		}
-		json.NewEncoder(w).Encode(response)
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
 	response := ErrorResponse{
 		Error:   "not_implemented",
 		Message: "Get card endpoint not implemented yet",
 	}
-	json.NewEncoder(w).Encode(response)
+	writeJSONResponse(w, http.StatusNotImplemented, response)
 }
 
 // createCard handles POST /cards
@@ -93,80 +87,66 @@ func createCard(w http.ResponseWriter, r *http.Request) {
 	var c models.Card
 
 	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
 		response := ErrorResponse{
 			Error:   "invalid_json",
 			Message: "Invalid JSON in request body",
 		}
-		json.NewEncoder(w).Encode(response)
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
 	response := ErrorResponse{
 		Error:   "not_implemented",
 		Message: "Create card endpoint not implemented yet",
 	}
-	json.NewEncoder(w).Encode(response)
+	writeJSONResponse(w, http.StatusNotImplemented, response)
 }
 
 // updateCard handles PUT /cards/{id}
 func updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	if _, err := uuid.Parse(cardID); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
 		response := ErrorResponse{
 			Error:   "invalid_id",
 			Message: "Invalid card ID format",
 		}
-		json.NewEncoder(w).Encode(response)
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
 	var c models.Card
 
 	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
 		response := ErrorResponse{
 			Error:   "invalid_json",
 			Message: "Invalid JSON in request body",
 		}
-		json.NewEncoder(w).Encode(response)
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
 	response := ErrorResponse{
 		Error:   "not_implemented",
 		Message: "Update card endpoint not implemented yet",
 	}
-	json.NewEncoder(w).Encode(response)
+	writeJSONResponse(w, http.StatusNotImplemented, response)
 }
 
 // deleteCard handles DELETE /cards/{id}
 func deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	if _, err := uuid.Parse(cardID); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
 		response := ErrorResponse{
 			Error:   "invalid_id",
 			Message: "Invalid card ID format",
 		}
-		json.NewEncoder(w).Encode(response)
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
 	response := ErrorResponse{
 		Error:   "not_implemented",
 		Message: "Delete card endpoint not implemented yet",
 	}
-	json.NewEncoder(w).Encode(response)
+	writeJSONResponse(w, http.StatusNotImplemented, response)
 }
