@@ -24,5 +24,8 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	w.Write(jsonData)
+	_, err = w.Write(jsonData)
+	if err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
 }
