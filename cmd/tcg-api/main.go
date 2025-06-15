@@ -21,7 +21,11 @@ func loadConfig() (*config.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			log.Printf("Error closing config file: %v", closeErr)
+		}
+	}()
 
 	var cfg config.Config
 	decoder := json.NewDecoder(file)
@@ -42,7 +46,7 @@ func main() {
 	// Create a new HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      setupRoutes(cfg),
+		Handler:      setupRoutes(*cfg),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

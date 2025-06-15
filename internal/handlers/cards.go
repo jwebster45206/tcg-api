@@ -32,17 +32,17 @@ func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		if path == "" || path == "/" {
 			// GET /cards - List all cards
-			listCards(w, r)
+			h.listCards(w, r)
 		} else {
 			// GET /cards/{id} - Get specific card
 			cardID := strings.Trim(path, "/")
-			getCard(w, r, cardID)
+			h.getCard(w, r, cardID)
 		}
 
 	case http.MethodPost:
 		if path == "" || path == "/" {
 			// POST /cards - Create new card
-			createCard(w, r)
+			h.createCard(w, r)
 		} else {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
@@ -51,7 +51,7 @@ func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if path != "" && path != "/" {
 			// PUT /cards/{id} - Update card
 			cardID := strings.Trim(path, "/")
-			updateCard(w, r, cardID)
+			h.updateCard(w, r, cardID)
 		} else {
 			http.Error(w, "Card ID required for update", http.StatusBadRequest)
 		}
@@ -60,7 +60,7 @@ func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if path != "" && path != "/" {
 			// DELETE /cards/{id} - Delete card
 			cardID := strings.Trim(path, "/")
-			deleteCard(w, r, cardID)
+			h.deleteCard(w, r, cardID)
 		} else {
 			http.Error(w, "Card ID required for deletion", http.StatusBadRequest)
 		}
@@ -71,18 +71,28 @@ func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // listCards handles GET /cards
-func listCards(w http.ResponseWriter, r *http.Request) {
-	response := ErrorResponse{
-		Error:   "not_implemented",
-		Message: "List cards endpoint not implemented yet",
+func (h *CardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	cards, err := h.storage.ListCards(ctx)
+	if err != nil {
+		h.logger.Printf("Failed to list cards: %v", err)
+		response := ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to retrieve cards",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
 	}
-	writeJSONResponse(w, http.StatusNotImplemented, response)
+
+	writeJSONResponse(w, http.StatusOK, cards)
 }
 
 // getCard handles GET /cards/{id}
-func getCard(w http.ResponseWriter, r *http.Request, cardID string) {
+func (h *CardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
-	if _, err := uuid.Parse(cardID); err != nil {
+	id, err := uuid.Parse(cardID)
+	if err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_id",
 			Message: "Invalid card ID format",
@@ -91,18 +101,26 @@ func getCard(w http.ResponseWriter, r *http.Request, cardID string) {
 		return
 	}
 
-	response := ErrorResponse{
-		Error:   "not_implemented",
-		Message: "Get card endpoint not implemented yet",
+	ctx := r.Context()
+	card, err := h.storage.GetCard(ctx, id)
+	if err != nil {
+		h.logger.Printf("Failed to get card %s: %v", cardID, err)
+		response := ErrorResponse{
+			Error:   "not_found",
+			Message: "Card not found",
+		}
+		writeJSONResponse(w, http.StatusNotFound, response)
+		return
 	}
-	writeJSONResponse(w, http.StatusNotImplemented, response)
+
+	writeJSONResponse(w, http.StatusOK, card)
 }
 
 // createCard handles POST /cards
-func createCard(w http.ResponseWriter, r *http.Request) {
-	var c models.Card
+func (h *CardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
+	var card models.Card
 
-	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_json",
 			Message: "Invalid JSON in request body",
@@ -111,17 +129,25 @@ func createCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := ErrorResponse{
-		Error:   "not_implemented",
-		Message: "Create card endpoint not implemented yet",
+	ctx := r.Context()
+	if err := h.storage.CreateCard(ctx, &card); err != nil {
+		h.logger.Printf("Failed to create card: %v", err)
+		response := ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to create card",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
 	}
-	writeJSONResponse(w, http.StatusNotImplemented, response)
+
+	writeJSONResponse(w, http.StatusCreated, card)
 }
 
 // updateCard handles PUT /cards/{id}
-func updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
+func (h *CardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
-	if _, err := uuid.Parse(cardID); err != nil {
+	id, err := uuid.Parse(cardID)
+	if err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_id",
 			Message: "Invalid card ID format",
@@ -130,9 +156,8 @@ func updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 		return
 	}
 
-	var c models.Card
-
-	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+	var card models.Card
+	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_json",
 			Message: "Invalid JSON in request body",
@@ -141,17 +166,25 @@ func updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 		return
 	}
 
-	response := ErrorResponse{
-		Error:   "not_implemented",
-		Message: "Update card endpoint not implemented yet",
+	ctx := r.Context()
+	if err := h.storage.UpdateCard(ctx, id, &card); err != nil {
+		h.logger.Printf("Failed to update card %s: %v", cardID, err)
+		response := ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to update card",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
 	}
-	writeJSONResponse(w, http.StatusNotImplemented, response)
+
+	writeJSONResponse(w, http.StatusOK, card)
 }
 
 // deleteCard handles DELETE /cards/{id}
-func deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
+func (h *CardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
-	if _, err := uuid.Parse(cardID); err != nil {
+	id, err := uuid.Parse(cardID)
+	if err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_id",
 			Message: "Invalid card ID format",
@@ -160,9 +193,16 @@ func deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
 		return
 	}
 
-	response := ErrorResponse{
-		Error:   "not_implemented",
-		Message: "Delete card endpoint not implemented yet",
+	ctx := r.Context()
+	if err := h.storage.DeleteCard(ctx, id); err != nil {
+		h.logger.Printf("Failed to delete card %s: %v", cardID, err)
+		response := ErrorResponse{
+			Error:   "internal_error",
+			Message: "Failed to delete card",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
 	}
-	writeJSONResponse(w, http.StatusNotImplemented, response)
+
+	w.WriteHeader(http.StatusNoContent)
 }
