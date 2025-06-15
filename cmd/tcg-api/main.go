@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -9,13 +10,37 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 )
 
+// loadConfig loads configuration from config.json file
+func loadConfig() (*config.Config, error) {
+	file, err := os.Open("config.json")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var cfg config.Config
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&cfg); err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
 func main() {
+	// Load configuration
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
 	// Create a new HTTP server
 	server := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":" + cfg.Port,
 		Handler:      setupRoutes(),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
