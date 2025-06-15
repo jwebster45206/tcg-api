@@ -189,7 +189,6 @@ func TestCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 }
 
 func TestCardsHandler_UpdateCard(t *testing.T) {
-	// First create a card to update
 	cardReq := models.Card{
 		Name: "Original Card",
 		Type: "Creature",
@@ -276,7 +275,6 @@ func TestCardsHandler_UpdateCard_NotFound(t *testing.T) {
 }
 
 func TestCardsHandler_DeleteCard(t *testing.T) {
-	// First create a card to delete
 	cardReq := models.Card{
 		Name: "Card to Delete",
 		Type: "Creature",
