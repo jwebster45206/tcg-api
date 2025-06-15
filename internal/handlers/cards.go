@@ -2,14 +2,30 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
-func CardsHandler(w http.ResponseWriter, r *http.Request) {
+// Handler struct with storage dependency
+type CardsHandler struct {
+	storage storage.Storage
+	logger  *log.Logger
+}
+
+// NewCardsHandler creates a new CardsHandler with the given dependencies
+func NewCardsHandler(storage storage.Storage, logger *log.Logger) *CardsHandler {
+	return &CardsHandler{
+		storage: storage,
+		logger:  logger,
+	}
+}
+
+func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/cards")
 
 	switch r.Method {

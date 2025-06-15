@@ -12,6 +12,7 @@ import (
 
 	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
+	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
 // loadConfig loads configuration from config.json file
@@ -41,7 +42,7 @@ func main() {
 	// Create a new HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      setupRoutes(),
+		Handler:      setupRoutes(cfg),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -72,15 +73,20 @@ func main() {
 	log.Println("Server exited")
 }
 
-func setupRoutes() *http.ServeMux {
+func setupRoutes(cfg config.Config) *http.ServeMux {
 	mux := http.NewServeMux()
+	logger := log.New(os.Stdout, "[API] ", log.LstdFlags)
+
+	// TODO: Initialize storage
+	sto := storage.NewMockStorage()
+	cardsHandler := handlers.NewCardsHandler(sto, logger)
 
 	// Health endpoint
 	mux.HandleFunc("/health", handlers.HealthHandler)
 
 	// Cards endpoints
-	mux.HandleFunc("/cards", handlers.CardsHandler)
-	mux.HandleFunc("/cards/", handlers.CardsHandler)
+	mux.Handle("/cards", cardsHandler)
+	mux.Handle("/cards/", cardsHandler)
 
 	return mux
 }
