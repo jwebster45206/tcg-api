@@ -12,17 +12,17 @@ import (
 // MockStorage implements CardStorage interface for testing and development
 type MockStorage struct {
 	mu    sync.RWMutex
-	cards map[uuid.UUID]*models.Card
+	cards map[uuid.UUID]*models.GameCard
 }
 
 // NewMockStorage creates a new MockStorage instance with some sample data
 func NewMockStorage() Storage {
 	storage := &MockStorage{
-		cards: make(map[uuid.UUID]*models.Card),
+		cards: make(map[uuid.UUID]*models.GameCard),
 	}
 
 	// Add some sample cards for development
-	sampleCards := []*models.Card{}
+	sampleCards := []*models.GameCard{}
 
 	// Populate the mock storage with sample data
 	for _, card := range sampleCards {
@@ -33,11 +33,11 @@ func NewMockStorage() Storage {
 }
 
 // ListCards returns all cards in storage
-func (m *MockStorage) ListCards(ctx context.Context) ([]*models.Card, error) {
+func (m *MockStorage) ListCards(ctx context.Context) ([]*models.GameCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	cards := make([]*models.Card, 0, len(m.cards))
+	cards := make([]*models.GameCard, 0, len(m.cards))
 	for _, card := range m.cards {
 		// Create a copy to avoid modifying the original
 		cardCopy := *card
@@ -48,7 +48,7 @@ func (m *MockStorage) ListCards(ctx context.Context) ([]*models.Card, error) {
 }
 
 // GetCard returns a specific card by ID
-func (m *MockStorage) GetCard(ctx context.Context, id uuid.UUID) (*models.Card, error) {
+func (m *MockStorage) GetCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -63,7 +63,7 @@ func (m *MockStorage) GetCard(ctx context.Context, id uuid.UUID) (*models.Card, 
 }
 
 // CreateCard adds a new card to storage
-func (m *MockStorage) CreateCard(ctx context.Context, card *models.Card) error {
+func (m *MockStorage) CreateCard(ctx context.Context, card *models.GameCard) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -85,7 +85,7 @@ func (m *MockStorage) CreateCard(ctx context.Context, card *models.Card) error {
 }
 
 // UpdateCard updates an existing card in storage
-func (m *MockStorage) UpdateCard(ctx context.Context, id uuid.UUID, card *models.Card) error {
+func (m *MockStorage) UpdateCard(ctx context.Context, id uuid.UUID, card *models.GameCard) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

@@ -35,7 +35,7 @@ func TestCardsHandler_ListCards(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var cards []*models.Card
+	var cards []*models.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &cards); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestCardsHandler_GetCard_InvalidID(t *testing.T) {
 }
 
 func TestCardsHandler_CreateCard(t *testing.T) {
-	cardReq := models.Card{
+	cardReq := models.GameCard{
 		Name:       "Test Card",
 		Subtitle:   "A test card",
 		Cost:       3,
@@ -143,7 +143,7 @@ func TestCardsHandler_CreateCard(t *testing.T) {
 			status, http.StatusCreated)
 	}
 
-	var createdCard models.Card
+	var createdCard models.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &createdCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 }
 
 func TestCardsHandler_UpdateCard(t *testing.T) {
-	cardReq := models.Card{
+	cardReq := models.GameCard{
 		Name: "Original Card",
 		Type: "Creature",
 	}
@@ -205,7 +205,7 @@ func TestCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	// Now update it
-	updateReq := models.Card{
+	updateReq := models.GameCard{
 		Name: "Updated Card",
 		Type: "Instant",
 	}
@@ -227,7 +227,7 @@ func TestCardsHandler_UpdateCard(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var updatedCard models.Card
+	var updatedCard models.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &updatedCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestCardsHandler_UpdateCard(t *testing.T) {
 
 func TestCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
-	updateReq := models.Card{
+	updateReq := models.GameCard{
 		Name: "Updated Card",
 	}
 
@@ -275,7 +275,7 @@ func TestCardsHandler_UpdateCard_NotFound(t *testing.T) {
 }
 
 func TestCardsHandler_DeleteCard(t *testing.T) {
-	cardReq := models.Card{
+	cardReq := models.GameCard{
 		Name: "Card to Delete",
 		Type: "Creature",
 	}

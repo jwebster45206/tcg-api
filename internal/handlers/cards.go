@@ -118,7 +118,7 @@ func (h *CardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID st
 
 // createCard handles POST /cards
 func (h *CardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
-	var card models.Card
+	var card models.GameCard
 
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
@@ -156,7 +156,7 @@ func (h *CardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID
 		return
 	}
 
-	var card models.Card
+	var card models.GameCard
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_json",

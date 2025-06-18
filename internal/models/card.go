@@ -2,7 +2,7 @@ package models
 
 import "github.com/google/uuid"
 
-type Card struct {
+type GameCard struct {
 	ID         uuid.UUID
 	Name       string   `json:"name"`
 	Subtitle   string   `json:"subtitle"`

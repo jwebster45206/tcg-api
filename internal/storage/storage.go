@@ -9,9 +9,9 @@ import (
 
 // Different storage interfaces for different domains
 type Storage interface {
-	ListCards(ctx context.Context) ([]*models.Card, error)
-	GetCard(ctx context.Context, id uuid.UUID) (*models.Card, error)
-	CreateCard(ctx context.Context, card *models.Card) error
-	UpdateCard(ctx context.Context, id uuid.UUID, card *models.Card) error
+	ListCards(ctx context.Context) ([]*models.GameCard, error)
+	GetCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error)
+	CreateCard(ctx context.Context, card *models.GameCard) error
+	UpdateCard(ctx context.Context, id uuid.UUID, card *models.GameCard) error
 	DeleteCard(ctx context.Context, id uuid.UUID) error
 }
