@@ -26,7 +26,7 @@ A lightweight REST API for simulating trading card games, built with Go and foll
 - Other mechanics TBD
 
 ### API Endpoints
-- `/cards` - Card resource management
+- `/game-cards` - Card resource management
 - `/decks` - Deck management
 - TODO - shuffle and draw
 

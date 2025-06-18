@@ -26,22 +26,22 @@ func NewGameCardsHandler(storage storage.Storage, logger *log.Logger) *GameCards
 }
 
 func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/cards")
+	path := strings.TrimPrefix(r.URL.Path, "/game-cards")
 
 	switch r.Method {
 	case http.MethodGet:
 		if path == "" || path == "/" {
-			// GET /cards - List all cards
+			// GET /game-cards - List all cards
 			h.listCards(w, r)
 		} else {
-			// GET /cards/{id} - Get specific card
+			// GET /game-cards/{id} - Get specific card
 			cardID := strings.Trim(path, "/")
 			h.getCard(w, r, cardID)
 		}
 
 	case http.MethodPost:
 		if path == "" || path == "/" {
-			// POST /cards - Create new card
+			// POST /game-cards - Create new card
 			h.createCard(w, r)
 		} else {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
@@ -49,7 +49,7 @@ func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPut:
 		if path != "" && path != "/" {
-			// PUT /cards/{id} - Update card
+			// PUT /game-cards/{id} - Update card
 			cardID := strings.Trim(path, "/")
 			h.updateCard(w, r, cardID)
 		} else {
@@ -58,7 +58,7 @@ func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodDelete:
 		if path != "" && path != "/" {
-			// DELETE /cards/{id} - Delete card
+			// DELETE /game-cards/{id} - Delete card
 			cardID := strings.Trim(path, "/")
 			h.deleteCard(w, r, cardID)
 		} else {
@@ -70,7 +70,7 @@ func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// listCards handles GET /cards
+// listCards handles GET /game-cards
 func (h *GameCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -88,7 +88,7 @@ func (h *GameCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(w, http.StatusOK, cards)
 }
 
-// getCard handles GET /cards/{id}
+// getCard handles GET /game-cards/{id}
 func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
@@ -116,7 +116,7 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 	writeJSONResponse(w, http.StatusOK, card)
 }
 
-// createCard handles POST /cards
+// createCard handles POST /game-cards
 func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	var card models.GameCard
 
@@ -143,7 +143,7 @@ func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(w, http.StatusCreated, card)
 }
 
-// updateCard handles PUT /cards/{id}
+// updateCard handles PUT /game-cards/{id}
 func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
@@ -180,7 +180,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 	writeJSONResponse(w, http.StatusOK, card)
 }
 
-// deleteCard handles DELETE /cards/{id}
+// deleteCard handles DELETE /game-cards/{id}
 func (h *GameCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
