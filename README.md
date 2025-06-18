@@ -2,7 +2,32 @@
 Golang API for trading card game deck building
 
 ## Overview
-A lightweight REST API for simulating trading card games, built with Go and following HAL (Hypertext Application Language) standards.
+A lightweight REST API for simulating trading card games, built with Go and following HAL (Hypertext Application Language) standards. The API features a modular card interface design that separates game-specific mechanics from general deck mechanics, making it extensible for different types of card games.
+
+## Architecture Design
+
+### Card Interface System
+The API uses an interface-driven approach to support multiple card types:
+
+- **CardInterface**: Base contract that all card types implement
+  - `GetID()`, `GetName()`, `GetFrontImageURL()`, `GetBackImageURL()`, `GetCardType()`
+
+### Card Type Implementations
+- **GameCard**: TCG-specific cards with game mechanics (cost, offense, defense, keywords, colors)
+- **ImageCard**: Simple cards with just imagery and basic info (name, description, images)
+- **PlayingCard**: Standard playing cards (suite, value, images) - *TODO*
+
+### Deck Mechanics (Shared Across Games)
+- Array of cards (unsorted) by identifier
+- Name of deck
+- Owner of deck (can be nil)
+- Sleeve/Back image URL (can be nil)
+- Deck accepts cards of any interface type
+
+### Game Mechanics vs Deck Mechanics Separation
+- **Deck Mechanics**: Generic operations that work with any card type implementing CardInterface
+- **Game Mechanics**: Specific to individual games (e.g., TCG rules, mana costs, combat)
+- **Future Deck State**: Cards in deck/discard/hand/play (TODO for Phase 3)
 
 ## Technical Stack
 - **Language**: Go
@@ -15,6 +40,7 @@ A lightweight REST API for simulating trading card games, built with Go and foll
 ### Card Management
 - Card creation and management
 - Card attributes (name, cost, offense, defense, keywords, colors)
+- Interface-based design supporting multiple card types
 
 ### Card Deck Management
 - Deck creation and management
@@ -26,8 +52,9 @@ A lightweight REST API for simulating trading card games, built with Go and foll
 - Other mechanics TBD
 
 ### API Endpoints
-- `/game-cards` - Card resource management
+- `/game-cards` - GameCard resource management (TCG-specific cards)
 - `/decks` - Deck management
+- TODO - ImageCard and PlayingCard handlers
 - TODO - shuffle and draw
 
 ## Storage Architecture
