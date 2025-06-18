@@ -15,8 +15,8 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
-func TestCardsHandler_ListCards(t *testing.T) {
-	req, err := http.NewRequest("GET", "/cards", nil)
+func TestGameCardsHandler_ListCards(t *testing.T) {
+	req, err := http.NewRequest("GET", "/game-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestCardsHandler_ListCards(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -35,7 +35,7 @@ func TestCardsHandler_ListCards(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var cards []*models.Card
+	var cards []interface{}
 	if err := json.Unmarshal(rr.Body.Bytes(), &cards); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -46,10 +46,10 @@ func TestCardsHandler_ListCards(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_GetCard(t *testing.T) {
+func TestGameCardsHandler_GetCard(t *testing.T) {
 	// Test with valid UUID
 	cardID := uuid.New().String()
-	req, err := http.NewRequest("GET", "/cards/"+cardID, nil)
+	req, err := http.NewRequest("GET", "/game-cards/"+cardID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestCardsHandler_GetCard(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -78,9 +78,9 @@ func TestCardsHandler_GetCard(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_GetCard_InvalidID(t *testing.T) {
+func TestGameCardsHandler_GetCard_InvalidID(t *testing.T) {
 	// Test with invalid UUID
-	req, err := http.NewRequest("GET", "/cards/invalid-id", nil)
+	req, err := http.NewRequest("GET", "/game-cards/invalid-id", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestCardsHandler_GetCard_InvalidID(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -109,8 +109,8 @@ func TestCardsHandler_GetCard_InvalidID(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_CreateCard(t *testing.T) {
-	cardReq := models.Card{
+func TestGameCardsHandler_CreateCard(t *testing.T) {
+	cardReq := models.GameCard{
 		Name:       "Test Card",
 		Subtitle:   "A test card",
 		Cost:       3,
@@ -123,7 +123,7 @@ func TestCardsHandler_CreateCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(cardReq)
-	req, err := http.NewRequest("POST", "/cards", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", "/game-cards", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestCardsHandler_CreateCard(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -143,7 +143,7 @@ func TestCardsHandler_CreateCard(t *testing.T) {
 			status, http.StatusCreated)
 	}
 
-	var createdCard models.Card
+	var createdCard models.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &createdCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -157,8 +157,8 @@ func TestCardsHandler_CreateCard(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
-	req, err := http.NewRequest("POST", "/cards", bytes.NewBuffer([]byte("invalid json")))
+func TestGameCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
+	req, err := http.NewRequest("POST", "/game-cards", bytes.NewBuffer([]byte("invalid json")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +169,7 @@ func TestCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -188,8 +188,8 @@ func TestCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_UpdateCard(t *testing.T) {
-	cardReq := models.Card{
+func TestGameCardsHandler_UpdateCard(t *testing.T) {
+	cardReq := models.GameCard{
 		Name: "Original Card",
 		Type: "Creature",
 	}
@@ -205,20 +205,20 @@ func TestCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	// Now update it
-	updateReq := models.Card{
+	updateReq := models.GameCard{
 		Name: "Updated Card",
 		Type: "Instant",
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PUT", "/game-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -227,7 +227,7 @@ func TestCardsHandler_UpdateCard(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var updatedCard models.Card
+	var updatedCard models.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &updatedCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -237,14 +237,14 @@ func TestCardsHandler_UpdateCard(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_UpdateCard_NotFound(t *testing.T) {
+func TestGameCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
-	updateReq := models.Card{
+	updateReq := models.GameCard{
 		Name: "Updated Card",
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PUT", "/game-cards/"+cardID, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -274,8 +274,8 @@ func TestCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_DeleteCard(t *testing.T) {
-	cardReq := models.Card{
+func TestGameCardsHandler_DeleteCard(t *testing.T) {
+	cardReq := models.GameCard{
 		Name: "Card to Delete",
 		Type: "Creature",
 	}
@@ -290,13 +290,13 @@ func TestCardsHandler_DeleteCard(t *testing.T) {
 		t.Fatalf("Failed to create test card: %v", err)
 	}
 
-	req, err := http.NewRequest("DELETE", "/cards/"+cardReq.ID.String(), nil)
+	req, err := http.NewRequest("DELETE", "/game-cards/"+cardReq.ID.String(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	rr := httptest.NewRecorder()
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -306,9 +306,9 @@ func TestCardsHandler_DeleteCard(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_DeleteCard_NotFound(t *testing.T) {
+func TestGameCardsHandler_DeleteCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
-	req, err := http.NewRequest("DELETE", "/cards/"+cardID, nil)
+	req, err := http.NewRequest("DELETE", "/game-cards/"+cardID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +318,7 @@ func TestCardsHandler_DeleteCard_NotFound(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
@@ -337,8 +337,8 @@ func TestCardsHandler_DeleteCard_NotFound(t *testing.T) {
 	}
 }
 
-func TestCardsHandler_UnsupportedMethod(t *testing.T) {
-	req, err := http.NewRequest("PATCH", "/cards", nil)
+func TestGameCardsHandler_UnsupportedMethod(t *testing.T) {
+	req, err := http.NewRequest("PATCH", "/game-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,7 +348,7 @@ func TestCardsHandler_UnsupportedMethod(t *testing.T) {
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
-	handler := NewCardsHandler(mockStorage, logger)
+	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
