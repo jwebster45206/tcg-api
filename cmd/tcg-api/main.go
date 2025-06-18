@@ -83,7 +83,7 @@ func setupRoutes(cfg config.Config) *http.ServeMux {
 
 	// TODO: Initialize storage
 	sto := storage.NewMockStorage()
-	cardsHandler := handlers.NewCardsHandler(sto, logger)
+	cardsHandler := handlers.NewGameCardsHandler(sto, logger)
 
 	// Health endpoint
 	mux.HandleFunc("/health", handlers.HealthHandler)

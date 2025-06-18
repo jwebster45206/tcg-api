@@ -12,20 +12,20 @@ import (
 )
 
 // Handler struct with storage dependency
-type CardsHandler struct {
+type GameCardsHandler struct {
 	storage storage.Storage
 	logger  *log.Logger
 }
 
-// NewCardsHandler creates a new CardsHandler with the given dependencies
-func NewCardsHandler(storage storage.Storage, logger *log.Logger) *CardsHandler {
-	return &CardsHandler{
+// NewGameCardsHandler creates a new GameCardsHandler with the given dependencies
+func NewGameCardsHandler(storage storage.Storage, logger *log.Logger) *GameCardsHandler {
+	return &GameCardsHandler{
 		storage: storage,
 		logger:  logger,
 	}
 }
 
-func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/cards")
 
 	switch r.Method {
@@ -71,10 +71,10 @@ func (h *CardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // listCards handles GET /cards
-func (h *CardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
+func (h *GameCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	cards, err := h.storage.ListCards(ctx)
+	cards, err := h.storage.ListCards(ctx, "gamecard")
 	if err != nil {
 		h.logger.Printf("Failed to list cards: %v", err)
 		response := ErrorResponse{
@@ -89,7 +89,7 @@ func (h *CardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 }
 
 // getCard handles GET /cards/{id}
-func (h *CardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID string) {
+func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
 	if err != nil {
@@ -102,7 +102,7 @@ func (h *CardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID st
 	}
 
 	ctx := r.Context()
-	card, err := h.storage.GetCard(ctx, id)
+	card, err := h.storage.GetCard(ctx, id, "gamecard")
 	if err != nil {
 		h.logger.Printf("Failed to get card %s: %v", cardID, err)
 		response := ErrorResponse{
@@ -117,7 +117,7 @@ func (h *CardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardID st
 }
 
 // createCard handles POST /cards
-func (h *CardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
+func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	var card models.GameCard
 
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
@@ -144,7 +144,7 @@ func (h *CardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 }
 
 // updateCard handles PUT /cards/{id}
-func (h *CardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
+func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
 	if err != nil {
@@ -181,7 +181,7 @@ func (h *CardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID
 }
 
 // deleteCard handles DELETE /cards/{id}
-func (h *CardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
+func (h *GameCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
 	if err != nil {
@@ -194,7 +194,7 @@ func (h *CardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, cardID
 	}
 
 	ctx := r.Context()
-	if err := h.storage.DeleteCard(ctx, id); err != nil {
+	if err := h.storage.DeleteCard(ctx, id, "gamecard"); err != nil {
 		h.logger.Printf("Failed to delete card %s: %v", cardID, err)
 		response := ErrorResponse{
 			Error:   "internal_error",
