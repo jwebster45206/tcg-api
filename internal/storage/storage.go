@@ -15,7 +15,8 @@ type Storage interface {
 	UpdateDeck(ctx context.Context, id uuid.UUID, deck *models.Deck) error
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
 
-	// Generic card operations - cardType determines which table/collection
+	// Image Card operations
+
 	ListGameCards(ctx context.Context, cardType string) ([]models.GameCard, error)
 	GetGameCard(ctx context.Context, id uuid.UUID, cardType string) (models.GameCard, error)
 	CreateGameCard(ctx context.Context, card models.GameCard) (models.GameCard, error)
