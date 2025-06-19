@@ -102,7 +102,7 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 	}
 
 	ctx := r.Context()
-	card, err := h.storage.GetGameCard(ctx, id, "gamecard")
+	card, err := h.storage.GetGameCard(ctx, id)
 	if err != nil {
 		h.logger.Printf("Failed to get card %s: %v", cardID, err)
 		response := ErrorResponse{
@@ -168,7 +168,10 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	ctx := r.Context()
-	if err := h.storage.UpdateGameCard(ctx, id, card); err != nil {
+	// Set the ID from the URL path
+	card.ID = id
+	updatedCard, err := h.storage.UpdateGameCard(ctx, card)
+	if err != nil {
 		h.logger.Printf("Failed to update card %s: %v", cardID, err)
 		response := ErrorResponse{
 			Error:   "internal_error",
@@ -178,7 +181,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 		return
 	}
 
-	writeJSONResponse(w, http.StatusOK, card)
+	writeJSONResponse(w, http.StatusOK, updatedCard)
 }
 
 // deleteCard handles DELETE /game-cards/{id}

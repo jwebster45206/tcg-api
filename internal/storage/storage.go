@@ -11,16 +11,22 @@ type Storage interface {
 	// Deck operations
 	ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*models.Deck, error)
 	GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error)
-	CreateDeck(ctx context.Context, deck *models.Deck) error
-	UpdateDeck(ctx context.Context, id uuid.UUID, deck *models.Deck) error
+	CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
+	UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
 
-	// Image Card operations
+	// ImageCard operations
+	ListImageCards(ctx context.Context) ([]*models.ImageCard, error)
+	GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error)
+	CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
+	UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
+	DeleteImageCard(ctx context.Context, id uuid.UUID) error
 
-	ListGameCards(ctx context.Context, cardType string) ([]models.GameCard, error)
-	GetGameCard(ctx context.Context, id uuid.UUID, cardType string) (models.GameCard, error)
-	CreateGameCard(ctx context.Context, card models.GameCard) (models.GameCard, error)
-	UpdateGameCard(ctx context.Context, id uuid.UUID, card models.GameCard) error
+	// GameCard operations
+	ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error)
+	GetGameCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error)
+	CreateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error)
+	UpdateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error)
 	DeleteGameCard(ctx context.Context, id uuid.UUID) error
 
 	// TODO: DeckState operations for future gameplay mechanics
