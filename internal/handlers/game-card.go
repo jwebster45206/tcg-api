@@ -74,7 +74,7 @@ func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *GameCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	cards, err := h.storage.ListCards(ctx, "gamecard")
+	cards, err := h.storage.ListGameCards(ctx, "gamecard")
 	if err != nil {
 		h.logger.Printf("Failed to list cards: %v", err)
 		response := ErrorResponse{
@@ -102,7 +102,7 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 	}
 
 	ctx := r.Context()
-	card, err := h.storage.GetCard(ctx, id, "gamecard")
+	card, err := h.storage.GetGameCard(ctx, id, "gamecard")
 	if err != nil {
 		h.logger.Printf("Failed to get card %s: %v", cardID, err)
 		response := ErrorResponse{
@@ -130,7 +130,8 @@ func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	if err := h.storage.CreateCard(ctx, &card); err != nil {
+	createdCard, err := h.storage.CreateGameCard(ctx, card)
+	if err != nil {
 		h.logger.Printf("Failed to create card: %v", err)
 		response := ErrorResponse{
 			Error:   "internal_error",
@@ -140,7 +141,7 @@ func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSONResponse(w, http.StatusCreated, card)
+	writeJSONResponse(w, http.StatusCreated, createdCard)
 }
 
 // updateCard handles PUT /game-cards/{id}
@@ -167,7 +168,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	ctx := r.Context()
-	if err := h.storage.UpdateCard(ctx, id, &card); err != nil {
+	if err := h.storage.UpdateGameCard(ctx, id, card); err != nil {
 		h.logger.Printf("Failed to update card %s: %v", cardID, err)
 		response := ErrorResponse{
 			Error:   "internal_error",
@@ -194,7 +195,7 @@ func (h *GameCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, ca
 	}
 
 	ctx := r.Context()
-	if err := h.storage.DeleteCard(ctx, id, "gamecard"); err != nil {
+	if err := h.storage.DeleteGameCard(ctx, id); err != nil {
 		h.logger.Printf("Failed to delete card %s: %v", cardID, err)
 		response := ErrorResponse{
 			Error:   "internal_error",

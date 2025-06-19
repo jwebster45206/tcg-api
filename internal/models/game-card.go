@@ -24,9 +24,11 @@ type GameCard struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+const typeGameCard = "game-card"
+
 // Implement CardInterface
 func (c *GameCard) GetID() uuid.UUID         { return c.ID }
 func (c *GameCard) GetName() string          { return c.Name }
 func (c *GameCard) GetFrontImageURL() string { return c.FrontImageURL }
 func (c *GameCard) GetBackImageURL() string  { return c.BackImageURL }
-func (c *GameCard) GetCardType() string      { return "gamecard" }
+func (c *GameCard) GetCardType() string      { return typeGameCard }

@@ -199,7 +199,8 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 
 	// Create the card first
 	ctx := context.Background()
-	err := mockStorage.CreateCard(ctx, &cardReq)
+	cardReq.ID = uuid.New() // Ensure we have a valid ID for the test
+	_, err := mockStorage.CreateGameCard(ctx, cardReq)
 	if err != nil {
 		t.Fatalf("Failed to create test card: %v", err)
 	}
@@ -285,7 +286,8 @@ func TestGameCardsHandler_DeleteCard(t *testing.T) {
 
 	// Create the card first
 	ctx := context.Background()
-	err := mockStorage.CreateCard(ctx, &cardReq)
+	cardReq.ID = uuid.New() // Ensure we have a valid ID for the test
+	_, err := mockStorage.CreateGameCard(ctx, cardReq)
 	if err != nil {
 		t.Fatalf("Failed to create test card: %v", err)
 	}

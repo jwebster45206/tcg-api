@@ -18,11 +18,13 @@ type PlayingCard struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+const typePlayingCard = "playing-card"
+
 func (c *PlayingCard) GetID() uuid.UUID         { return c.ID }
 func (c *PlayingCard) GetName() string          { return fmt.Sprintf("%s of %s", c.getValueName(), c.Suite) }
 func (c *PlayingCard) GetFrontImageURL() string { return c.FrontImageURL }
 func (c *PlayingCard) GetBackImageURL() string  { return c.BackImageURL }
-func (c *PlayingCard) GetCardType() string      { return "playingcard" }
+func (c *PlayingCard) GetCardType() string      { return typePlayingCard }
 
 func (c *PlayingCard) getValueName() string {
 	switch c.Value {
