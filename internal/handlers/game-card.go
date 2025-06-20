@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -14,11 +14,11 @@ import (
 // Handler struct with storage dependency
 type GameCardsHandler struct {
 	storage storage.Storage
-	logger  *log.Logger
+	logger  *slog.Logger
 }
 
 // NewGameCardsHandler creates a new GameCardsHandler with the given dependencies
-func NewGameCardsHandler(storage storage.Storage, logger *log.Logger) *GameCardsHandler {
+func NewGameCardsHandler(storage storage.Storage, logger *slog.Logger) *GameCardsHandler {
 	return &GameCardsHandler{
 		storage: storage,
 		logger:  logger,
@@ -76,7 +76,9 @@ func (h *GameCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 
 	cards, err := h.storage.ListGameCards(ctx, "gamecard")
 	if err != nil {
-		h.logger.Printf("Failed to list cards: %v", err)
+		h.logger.Error("Failed to list cards",
+			slog.String("operation", "list_game_cards"),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to retrieve cards",
@@ -104,7 +106,10 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 	ctx := r.Context()
 	card, err := h.storage.GetGameCard(ctx, id)
 	if err != nil {
-		h.logger.Printf("Failed to get card %s: %v", cardID, err)
+		h.logger.Error("Failed to get game card",
+			slog.String("operation", "get_game_card"),
+			slog.String("card_id", cardID),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "not_found",
 			Message: "Card not found",
@@ -132,7 +137,10 @@ func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	createdCard, err := h.storage.CreateGameCard(ctx, card)
 	if err != nil {
-		h.logger.Printf("Failed to create card: %v", err)
+		h.logger.Error("Failed to create game card",
+			slog.String("operation", "create_game_card"),
+			slog.String("card_name", card.Name),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to create card",
@@ -172,7 +180,11 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 	card.ID = id
 	updatedCard, err := h.storage.UpdateGameCard(ctx, card)
 	if err != nil {
-		h.logger.Printf("Failed to update card %s: %v", cardID, err)
+		h.logger.Error("Failed to update game card",
+			slog.String("operation", "update_game_card"),
+			slog.String("card_id", cardID),
+			slog.String("card_name", card.Name),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to update card",
@@ -199,7 +211,10 @@ func (h *GameCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, ca
 
 	ctx := r.Context()
 	if err := h.storage.DeleteGameCard(ctx, id); err != nil {
-		h.logger.Printf("Failed to delete card %s: %v", cardID, err)
+		h.logger.Error("Failed to delete game card",
+			slog.String("operation", "delete_game_card"),
+			slog.String("card_id", cardID),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to delete card",
