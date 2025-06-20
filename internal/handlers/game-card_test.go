@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,6 +14,13 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/models"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
+
+// testLogger creates a test logger that outputs to stdout but suppresses output during tests
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelError, // Only show errors in tests
+	}))
+}
 
 func TestGameCardsHandler_ListCards(t *testing.T) {
 	req, err := http.NewRequest("GET", "/game-cards", nil)
@@ -25,7 +32,7 @@ func TestGameCardsHandler_ListCards(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -58,7 +65,7 @@ func TestGameCardsHandler_GetCard(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -89,7 +96,7 @@ func TestGameCardsHandler_GetCard_InvalidID(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -133,7 +140,7 @@ func TestGameCardsHandler_CreateCard(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -168,7 +175,7 @@ func TestGameCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -195,7 +202,7 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 
 	// Create the card first
 	ctx := context.Background()
@@ -255,7 +262,7 @@ func TestGameCardsHandler_UpdateCard_NotFound(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -282,7 +289,7 @@ func TestGameCardsHandler_DeleteCard(t *testing.T) {
 	}
 
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 
 	// Create the card first
 	ctx := context.Background()
@@ -319,7 +326,7 @@ func TestGameCardsHandler_DeleteCard_NotFound(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -349,7 +356,7 @@ func TestGameCardsHandler_UnsupportedMethod(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewGameCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)

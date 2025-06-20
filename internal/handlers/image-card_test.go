@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -25,7 +23,7 @@ func TestImageCardsHandler_ListCards(t *testing.T) {
 
 	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -51,7 +49,7 @@ func TestImageCardsHandler_GetCard(t *testing.T) {
 	cardID := uuid.New()
 
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	// Test getting non-existent card
@@ -85,7 +83,7 @@ func TestImageCardsHandler_GetCard(t *testing.T) {
 
 func TestImageCardsHandler_CreateCard(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	card := models.ImageCard{
@@ -130,7 +128,7 @@ func TestImageCardsHandler_CreateCard(t *testing.T) {
 
 func TestImageCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	req, err := http.NewRequest("POST", "/image-cards", bytes.NewReader([]byte("invalid json")))
@@ -150,7 +148,7 @@ func TestImageCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 
 func TestImageCardsHandler_UpdateCard(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	// First create a card
@@ -206,7 +204,7 @@ func TestImageCardsHandler_UpdateCard(t *testing.T) {
 
 func TestImageCardsHandler_DeleteCard(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	// First create a card
@@ -244,7 +242,7 @@ func TestImageCardsHandler_DeleteCard(t *testing.T) {
 
 func TestImageCardsHandler_MethodNotAllowed(t *testing.T) {
 	mockStorage := storage.NewMockStorage()
-	logger := log.New(os.Stdout, "[TEST] ", log.LstdFlags)
+	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	req, err := http.NewRequest("PATCH", "/image-cards", nil)

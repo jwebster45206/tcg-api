@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -43,10 +44,18 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
+	// Set up structured logging
+	logger := config.NewLogger(cfg.Logger)
+	config.SetDefaultLogger(logger)
+
+	logger.Info("Starting TCG API",
+		slog.String("env", cfg.Env),
+		slog.String("port", cfg.Port))
+
 	// Create a new HTTP server
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      setupRoutes(*cfg),
+		Handler:      setupRoutes(*cfg, logger),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -54,9 +63,12 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Starting server on %s", server.Addr)
+		logger.Info("Server starting", slog.String("addr", server.Addr))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not listen on %s: %v\n", server.Addr, err)
+			logger.Error("Server failed to start",
+				slog.String("addr", server.Addr),
+				slog.Any("error", err))
+			os.Exit(1)
 		}
 	}()
 
@@ -64,26 +76,27 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
 
 	// Give outstanding requests 30 seconds to complete
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		logger.Error("Server forced to shutdown", slog.Any("error", err))
+		os.Exit(1)
 	}
 
-	log.Println("Server exited")
+	logger.Info("Server exited")
 }
 
-func setupRoutes(cfg config.Config) *http.ServeMux {
+func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
-	logger := log.New(os.Stdout, "[API] ", log.LstdFlags)
 
 	// TODO: Initialize storage
 	sto := storage.NewMockStorage()
 	gameCardsHandler := handlers.NewGameCardsHandler(sto, logger)
+	imageCardsHandler := handlers.NewImageCardsHandler(sto, logger)
 
 	// Health endpoint
 	mux.HandleFunc("/health", handlers.HealthHandler)
@@ -91,6 +104,9 @@ func setupRoutes(cfg config.Config) *http.ServeMux {
 	// Cards endpoints
 	mux.Handle("/game-cards", gameCardsHandler)
 	mux.Handle("/game-cards/", gameCardsHandler)
+
+	mux.Handle("/image-cards", imageCardsHandler)
+	mux.Handle("/image-cards/", imageCardsHandler)
 
 	return mux
 }

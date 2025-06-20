@@ -7,5 +7,9 @@
     "user": "root",
     "password": "password",
     "dbname": "tcg_db"
+  },
+  "logger": {
+    "level": "info",
+    "format": "json"
   }
 }

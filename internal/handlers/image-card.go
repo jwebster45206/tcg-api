@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -14,11 +14,11 @@ import (
 // Handler struct with storage dependency
 type ImageCardsHandler struct {
 	storage storage.Storage
-	logger  *log.Logger
+	logger  *slog.Logger
 }
 
 // NewImageCardsHandler creates a new ImageCardsHandler with the given dependencies
-func NewImageCardsHandler(storage storage.Storage, logger *log.Logger) *ImageCardsHandler {
+func NewImageCardsHandler(storage storage.Storage, logger *slog.Logger) *ImageCardsHandler {
 	return &ImageCardsHandler{
 		storage: storage,
 		logger:  logger,
@@ -76,7 +76,9 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 
 	cards, err := h.storage.ListImageCards(ctx)
 	if err != nil {
-		h.logger.Printf("Failed to list image cards: %v", err)
+		h.logger.Error("Failed to list image cards",
+			slog.String("operation", "list_image_cards"),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to retrieve image cards",
@@ -104,7 +106,10 @@ func (h *ImageCardsHandler) getCard(w http.ResponseWriter, r *http.Request, card
 	ctx := r.Context()
 	card, err := h.storage.GetImageCard(ctx, id)
 	if err != nil {
-		h.logger.Printf("Failed to get image card %s: %v", cardID, err)
+		h.logger.Error("Failed to get image card",
+			slog.String("operation", "get_image_card"),
+			slog.String("card_id", cardID),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "not_found",
 			Message: "Card not found",
@@ -131,7 +136,10 @@ func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	createdCard, err := h.storage.CreateImageCard(ctx, card)
 	if err != nil {
-		h.logger.Printf("Failed to create image card: %v", err)
+		h.logger.Error("Failed to create image card",
+			slog.String("operation", "create_image_card"),
+			slog.String("card_name", card.Name),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to create image card",
@@ -171,7 +179,11 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 	card.ID = id
 	updatedCard, err := h.storage.UpdateImageCard(ctx, card)
 	if err != nil {
-		h.logger.Printf("Failed to update image card %s: %v", cardID, err)
+		h.logger.Error("Failed to update image card",
+			slog.String("operation", "update_image_card"),
+			slog.String("card_id", cardID),
+			slog.String("card_name", card.Name),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to update image card",
@@ -198,7 +210,10 @@ func (h *ImageCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, c
 
 	ctx := r.Context()
 	if err := h.storage.DeleteImageCard(ctx, id); err != nil {
-		h.logger.Printf("Failed to delete image card %s: %v", cardID, err)
+		h.logger.Error("Failed to delete image card",
+			slog.String("operation", "delete_image_card"),
+			slog.String("card_id", cardID),
+			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
 			Message: "Failed to delete image card",
