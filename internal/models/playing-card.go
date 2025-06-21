@@ -18,34 +18,39 @@ type PlayingCard struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-const typePlayingCard = "playing-card"
-const suiteHearts = "hearts"
-const suiteDiamonds = "diamonds"
-const suiteClubs = "clubs"
-const suiteSpades = "spades"
-const colorRed = "red"
-const colorBlack = "black"
-const valueAce = "ace"
-const valueJack = "jack"
-const valueQueen = "queen"
-const valueKing = "king"
+const (
+	TypePlayingCard = "playing-card"
+
+	SuiteHearts   = "hearts"
+	SuiteDiamonds = "diamonds"
+	SuiteClubs    = "clubs"
+	SuiteSpades   = "spades"
+
+	ColorRed   = "red"
+	ColorBlack = "black"
+
+	ValueAce   = "ace"
+	ValueJack  = "jack"
+	ValueQueen = "queen"
+	ValueKing  = "king"
+)
 
 func (c *PlayingCard) GetID() uuid.UUID         { return c.ID }
 func (c *PlayingCard) GetName() string          { return fmt.Sprintf("%s of %s", c.getValueName(), c.Suite) }
 func (c *PlayingCard) GetFrontImageURL() string { return c.FrontImageURL }
 func (c *PlayingCard) GetBackImageURL() string  { return c.BackImageURL }
-func (c *PlayingCard) GetCardType() string      { return typePlayingCard }
+func (c *PlayingCard) GetCardType() string      { return TypePlayingCard }
 
 func (c *PlayingCard) getValueName() string {
 	switch c.Value {
 	case 1:
-		return valueAce
+		return ValueAce
 	case 11:
-		return valueJack
+		return ValueJack
 	case 12:
-		return valueQueen
+		return ValueQueen
 	case 13:
-		return valueKing
+		return ValueKing
 	default:
 		return fmt.Sprintf("%d", c.Value)
 	}
@@ -53,10 +58,10 @@ func (c *PlayingCard) getValueName() string {
 
 func (c *PlayingCard) GetColor() string {
 	switch c.Suite {
-	case suiteHearts, suiteDiamonds:
-		return colorRed
-	case suiteClubs, suiteSpades:
-		return colorBlack
+	case SuiteHearts, SuiteDiamonds:
+		return ColorRed
+	case SuiteClubs, SuiteSpades:
+		return ColorBlack
 	default:
 		return "unknown"
 	}
@@ -66,7 +71,7 @@ func (c *PlayingCard) Validate() error {
 	if c.Value < 1 || c.Value > 13 {
 		return fmt.Errorf("value must be between 1 and 13")
 	}
-	if c.Suite != suiteHearts && c.Suite != suiteDiamonds && c.Suite != suiteClubs && c.Suite != suiteSpades {
+	if c.Suite != SuiteHearts && c.Suite != SuiteDiamonds && c.Suite != SuiteClubs && c.Suite != SuiteSpades {
 		return fmt.Errorf("invalid suite: %s", c.Suite)
 	}
 	return nil
