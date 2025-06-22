@@ -8,6 +8,13 @@
     "password": "password",
     "dbname": "tcg_db"
   },
+  "db_reader": {
+    "host": "",
+    "port": "3306",
+    "user": "root",
+    "password": "password",
+    "dbname": "tcg_db"
+  },
   "logger": {
     "level": "info",
     "format": "json"
