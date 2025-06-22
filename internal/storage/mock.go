@@ -15,18 +15,20 @@ var (
 
 // MockStorage implements Storage interface for testing and development
 type MockStorage struct {
-	mu         sync.RWMutex
-	gameCards  map[uuid.UUID]*models.GameCard
-	decks      map[uuid.UUID]*models.Deck
-	imageCards map[uuid.UUID]*models.ImageCard
+	mu           sync.RWMutex
+	gameCards    map[uuid.UUID]*models.GameCard
+	decks        map[uuid.UUID]*models.Deck
+	imageCards   map[uuid.UUID]*models.ImageCard
+	playingCards map[uuid.UUID]*models.PlayingCard
 }
 
 // NewMockStorage creates a new MockStorage instance with some sample data
 func NewMockStorage() Storage {
 	storage := &MockStorage{
-		gameCards:  make(map[uuid.UUID]*models.GameCard),
-		decks:      make(map[uuid.UUID]*models.Deck),
-		imageCards: make(map[uuid.UUID]*models.ImageCard),
+		gameCards:    make(map[uuid.UUID]*models.GameCard),
+		decks:        make(map[uuid.UUID]*models.Deck),
+		imageCards:   make(map[uuid.UUID]*models.ImageCard),
+		playingCards: make(map[uuid.UUID]*models.PlayingCard),
 	}
 
 	// Add some sample cards for development
@@ -286,4 +288,92 @@ func (m *MockStorage) ListImageCards(ctx context.Context) ([]*models.ImageCard, 
 		imageCards = append(imageCards, &imageCopy)
 	}
 	return imageCards, nil
+}
+
+// PlayingCard CRUD operations
+func (m *MockStorage) ListPlayingCards(ctx context.Context) ([]*models.PlayingCard, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	playingCards := make([]*models.PlayingCard, 0, len(m.playingCards))
+	for _, playingCard := range m.playingCards {
+		// Create a copy to avoid modifying the original
+		cardCopy := *playingCard
+		playingCards = append(playingCards, &cardCopy)
+	}
+	return playingCards, nil
+}
+
+func (m *MockStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	playingCard, exists := m.playingCards[id]
+	if !exists {
+		return nil, ErrNotFound
+	}
+
+	// Return a copy to avoid modifying the original
+	cardCopy := *playingCard
+	return &cardCopy, nil
+}
+
+func (m *MockStorage) CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Generate a new ID if not provided
+	if card.ID == uuid.Nil {
+		card.ID = uuid.New()
+	}
+
+	// Validate the card
+	if err := card.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Check if playing card already exists
+	if _, exists := m.playingCards[card.ID]; exists {
+		return nil, errors.New("playing card already exists")
+	}
+
+	// Store a copy to avoid external modifications
+	cardCopy := card
+	m.playingCards[card.ID] = &cardCopy
+
+	return &cardCopy, nil
+}
+
+func (m *MockStorage) UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Validate the card
+	if err := card.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Check if playing card exists
+	if _, exists := m.playingCards[card.ID]; !exists {
+		return nil, ErrNotFound
+	}
+
+	// Store a copy to avoid external modifications
+	cardCopy := card
+	m.playingCards[card.ID] = &cardCopy
+
+	return &cardCopy, nil
+}
+
+func (m *MockStorage) DeletePlayingCard(ctx context.Context, id uuid.UUID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Check if playing card exists
+	if _, exists := m.playingCards[id]; !exists {
+		return ErrNotFound
+	}
+
+	delete(m.playingCards, id)
+	return nil
 }
