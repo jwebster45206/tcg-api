@@ -71,7 +71,10 @@ func (c *PlayingCard) Validate() error {
 	if c.Value < 1 || c.Value > 13 {
 		return fmt.Errorf("value must be between 1 and 13")
 	}
-	if c.Suite != SuiteHearts && c.Suite != SuiteDiamonds && c.Suite != SuiteClubs && c.Suite != SuiteSpades {
+	if c.Suite != SuiteHearts &&
+		c.Suite != SuiteDiamonds &&
+		c.Suite != SuiteClubs &&
+		c.Suite != SuiteSpades {
 		return fmt.Errorf("invalid suite: %s", c.Suite)
 	}
 	return nil

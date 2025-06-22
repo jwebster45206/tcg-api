@@ -22,6 +22,13 @@ type Storage interface {
 	UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
 	DeleteImageCard(ctx context.Context, id uuid.UUID) error
 
+	// PlayingCard operations
+	ListPlayingCards(ctx context.Context) ([]*models.PlayingCard, error)
+	GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error)
+	CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error)
+	UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error)
+	DeletePlayingCard(ctx context.Context, id uuid.UUID) error
+
 	// GameCard operations
 	ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error)
 	GetGameCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error)

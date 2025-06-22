@@ -93,10 +93,10 @@ func main() {
 func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// TODO: Initialize storage
 	sto := storage.NewMockStorage()
 	gameCardsHandler := handlers.NewGameCardsHandler(sto, logger)
 	imageCardsHandler := handlers.NewImageCardsHandler(sto, logger)
+	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
 
 	// Health endpoint
 	mux.HandleFunc("/health", handlers.HealthHandler)
@@ -107,6 +107,9 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 
 	mux.Handle("/image-cards", imageCardsHandler)
 	mux.Handle("/image-cards/", imageCardsHandler)
+
+	mux.Handle("/playing-cards", playingCardsHandler)
+	mux.Handle("/playing-cards/", playingCardsHandler)
 
 	return mux
 }
