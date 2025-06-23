@@ -9,8 +9,9 @@ type MySQLConfig struct {
 }
 
 type Config struct {
-	Env    string       `json:"env"`
-	Port   string       `json:"port"`
-	DB     MySQLConfig  `json:"db"`
-	Logger LoggerConfig `json:"logger"`
+	Env      string       `json:"env"`
+	Port     string       `json:"port"`
+	DB       MySQLConfig  `json:"db"`
+	DBReader MySQLConfig  `json:"db_reader"`
+	Logger   LoggerConfig `json:"logger"`
 }

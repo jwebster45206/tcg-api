@@ -93,7 +93,19 @@ func main() {
 func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	sto := storage.NewMockStorage()
+	// Initialize MySQL storage
+	var readerConfig *config.MySQLConfig
+	if cfg.DBReader.Host != "" {
+		readerConfig = &cfg.DBReader
+	}
+
+	sto, err := storage.NewMySQLStorage(cfg.DB, readerConfig, logger)
+	if err != nil {
+		logger.Error("Failed to initialize MySQL storage, falling back to mock storage",
+			slog.Any("error", err))
+		sto = storage.NewMockStorage()
+	}
+
 	gameCardsHandler := handlers.NewGameCardsHandler(sto, logger)
 	imageCardsHandler := handlers.NewImageCardsHandler(sto, logger)
 	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
