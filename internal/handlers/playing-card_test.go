@@ -110,7 +110,7 @@ func TestPlayingCardsHandler_GetCard_InvalidID(t *testing.T) {
 func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 	cardReq := models.PlayingCard{
 		Suite:         models.SuiteHearts,
-		Rank:          1, // Ace
+		Ranking:       1, // Ace
 		FrontImageURL: "https://example.com/ace_hearts_front.png",
 		BackImageURL:  "https://example.com/card_back.png",
 	}
@@ -145,8 +145,8 @@ func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 		t.Errorf("Expected card suite '%s', got '%s'", cardReq.Suite, createdCard.Suite)
 	}
 
-	if createdCard.Rank != cardReq.Rank {
-		t.Errorf("Expected card rank %d, got %d", cardReq.Rank, createdCard.Rank)
+	if createdCard.Ranking != cardReq.Ranking {
+		t.Errorf("Expected card ranking %d, got %d", cardReq.Ranking, createdCard.Ranking)
 	}
 
 	if createdCard.ID == uuid.Nil {
@@ -186,10 +186,10 @@ func TestPlayingCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
-	// Test with invalid rank (out of range)
+	// Test with invalid ranking (out of range)
 	cardReq := models.PlayingCard{
 		Suite:         models.SuiteHearts,
-		Rank:          15, // Invalid - should be 1-13
+		Ranking:       15, // Invalid - should be 1-13
 		FrontImageURL: "https://example.com/front.png",
 		BackImageURL:  "https://example.com/back.png",
 	}
@@ -227,8 +227,8 @@ func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 
 func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite: models.SuiteSpades,
-		Rank:  10,
+		Suite:   models.SuiteSpades,
+		Ranking: 10,
 	}
 
 	mockStorage := storage.NewMockStorage()
@@ -245,7 +245,7 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	// Now update it
 	updateReq := models.PlayingCard{
 		Suite:         models.SuiteDiamonds,
-		Rank:          5,
+		Ranking:       5,
 		FrontImageURL: "https://example.com/updated_front.png",
 		BackImageURL:  "https://example.com/updated_back.png",
 	}
@@ -276,16 +276,16 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 		t.Errorf("Expected updated card suite '%s', got '%s'", updateReq.Suite, updatedCard.Suite)
 	}
 
-	if updatedCard.Rank != updateReq.Rank {
-		t.Errorf("Expected updated card rank %d, got %d", updateReq.Rank, updatedCard.Rank)
+	if updatedCard.Ranking != updateReq.Ranking {
+		t.Errorf("Expected updated card ranking %d, got %d", updateReq.Ranking, updatedCard.Ranking)
 	}
 }
 
 func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
 	updateReq := models.PlayingCard{
-		Suite: models.SuiteClubs,
-		Rank:  7,
+		Suite:   models.SuiteClubs,
+		Ranking: 7,
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
@@ -322,8 +322,8 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	cardID := uuid.New().String()
 	updateReq := models.PlayingCard{
-		Suite: "invalid_suite", // Invalid suite
-		Rank:  5,
+		Suite:   "invalid_suite", // Invalid suite
+		Ranking: 5,
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
@@ -359,8 +359,8 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 
 func TestPlayingCardsHandler_DeleteCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite: models.SuiteHearts,
-		Rank:  12, // Queen
+		Suite:   models.SuiteHearts,
+		Ranking: 12, // Queen
 	}
 
 	mockStorage := storage.NewMockStorage()

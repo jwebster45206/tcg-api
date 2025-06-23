@@ -3,7 +3,7 @@
 -- Card types lookup data
 INSERT INTO card_types (id, name, description) VALUES
 (1, 'image', 'Image cards for artwork and illustrations'),
-(2, 'playing', 'Traditional playing cards with suit and rank');
+(2, 'playing', 'Traditional playing cards with suit and ranking');
 
 -- Sample image cards (stored entirely in cards table)
 INSERT INTO cards (id, name, description, card_type_id, image_url, alt_text) VALUES
@@ -18,7 +18,7 @@ INSERT INTO cards (id, name, description, card_type_id, image_url, alt_text) VAL
 ('550e8400-e29b-41d4-a716-446655440012', 'Queen of Diamonds', 'The lady of wealth', 2, 'https://example.com/cards/queen-diamonds.jpg', 'Queen of Diamonds playing card'),
 ('550e8400-e29b-41d4-a716-446655440013', 'Jack of Clubs', 'The knave of clubs', 2, 'https://example.com/cards/jack-clubs.jpg', 'Jack of Clubs playing card');
 
-INSERT INTO playing_cards (id, suit, rank) VALUES
+INSERT INTO playing_cards (id, suit, ranking) VALUES
 ('550e8400-e29b-41d4-a716-446655440010', 'spades', 1),     -- Ace of Spades
 ('550e8400-e29b-41d4-a716-446655440011', 'hearts', 13),    -- King of Hearts
 ('550e8400-e29b-41d4-a716-446655440012', 'diamonds', 12),  -- Queen of Diamonds
