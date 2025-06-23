@@ -25,3 +25,6 @@ go.work.sum
 .env
 
 *.json
+
+# test build
+tcg-api
