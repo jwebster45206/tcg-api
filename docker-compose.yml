@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   tcg-api:
     build:
@@ -9,6 +7,8 @@ services:
     environment:
       - ENV=development
       - PORT=8080
+    volumes:
+      - ./config.docker.json:/app/config.json:ro
     depends_on:
       - mysql
     networks:

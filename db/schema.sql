@@ -23,7 +23,7 @@ CREATE TABLE cards (
 CREATE TABLE playing_cards (
     id CHAR(36) PRIMARY KEY,
     suit ENUM('hearts', 'diamonds', 'clubs', 'spades') NOT NULL,
-    rank INT NOT NULL CHECK (rank >= 1 AND rank <= 13)
+    rank INT NOT NULL
 );
 
 -- TODO: Add game_cards table
