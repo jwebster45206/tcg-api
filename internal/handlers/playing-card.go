@@ -150,7 +150,7 @@ func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request)
 		h.logger.Error("Failed to create playing card",
 			slog.String("operation", "create_playing_card"),
 			slog.String("suite", card.Suite),
-			slog.Int("value", card.Value),
+			slog.Int("rank", card.Rank),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
@@ -205,7 +205,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 			slog.String("operation", "update_playing_card"),
 			slog.String("card_id", cardID),
 			slog.String("suite", card.Suite),
-			slog.Int("value", card.Value),
+			slog.Int("rank", card.Rank),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
