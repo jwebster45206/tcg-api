@@ -21,12 +21,13 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tcg-api ./cmd/tcg-api
 
 # Production stage
-FROM scratch
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /app/tcg-api /tcg-api
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /app
+COPY --from=builder /app/tcg-api .
 
 EXPOSE 8080
 
 ENV PORT=8080
 
-ENTRYPOINT ["/tcg-api"]
+ENTRYPOINT ["./tcg-api"]
