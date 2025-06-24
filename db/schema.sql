@@ -23,9 +23,11 @@ CREATE TABLE cards (
 
 -- Playing cards specific attributes  
 CREATE TABLE playing_cards (
-    id CHAR(36) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    card_id INT NOT NULL,
     suit ENUM('hearts', 'diamonds', 'clubs', 'spades') NOT NULL,
-    ranking INT NOT NULL
+    ranking INT NOT NULL,
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
 );
 
 -- TODO: Add game_cards table
@@ -36,3 +38,4 @@ CREATE TABLE playing_cards (
 CREATE INDEX idx_cards_uuid ON cards(uuid);
 CREATE INDEX idx_cards_type_id ON cards(card_type_id);
 CREATE INDEX idx_cards_created_at ON cards(created_at);
+CREATE INDEX idx_playing_cards_card_id ON playing_cards(card_id);
