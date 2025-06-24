@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
 func TestHealthHandler(t *testing.T) {
@@ -13,7 +15,8 @@ func TestHealthHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HealthHandler)
+	sto := storage.NewMockStorage()
+	handler := NewHealthHandler(sto)
 
 	handler.ServeHTTP(rr, req)
 

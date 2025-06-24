@@ -7,12 +7,14 @@ import (
 	"time"
 
 	"github.com/jwebster45206/tcg-api/internal/handlers"
+	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
 func TestMainRoutes(t *testing.T) {
 	// Test that our routes are properly configured
+	sto := storage.NewMockStorage()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", handlers.HealthHandler)
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
 
 	tests := []struct {
 		name           string
@@ -51,8 +53,9 @@ func TestMainRoutes(t *testing.T) {
 
 func TestServerStartup(t *testing.T) {
 	// Test that we can create a server without it crashing
+	sto := storage.NewMockStorage()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", handlers.HealthHandler)
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
 
 	server := &http.Server{
 		Addr:         ":0", // Use port 0 to get any available port

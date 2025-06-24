@@ -111,7 +111,7 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
 
 	// Health endpoint
-	mux.HandleFunc("/health", handlers.HealthHandler)
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
 
 	// Cards endpoints
 	mux.Handle("/game-cards", gameCardsHandler)
