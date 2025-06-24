@@ -8,6 +8,9 @@ import (
 )
 
 type Storage interface {
+	// Health check
+	Ping(ctx context.Context) error
+
 	// Deck operations
 	ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*models.Deck, error)
 	GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error)

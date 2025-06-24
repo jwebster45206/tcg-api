@@ -42,6 +42,11 @@ func NewMockStorage() Storage {
 	return storage
 }
 
+// Ping implements health check for mock storage (always returns nil)
+func (ms *MockStorage) Ping(ctx context.Context) error {
+	return nil
+}
+
 // ListGameCards returns all cards of the specified type
 func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error) {
 	m.mu.RLock()

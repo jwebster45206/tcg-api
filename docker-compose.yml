@@ -11,6 +11,12 @@ services:
       - ./config.docker.json:/app/config.json:ro
     depends_on:
       - mysql
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 40s
     networks:
       - tcg-network
 
@@ -18,7 +24,7 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: tcg_db
+      MYSQL_DATABASE: tcg
       MYSQL_USER: tcg_user
       MYSQL_PASSWORD: password
     ports:
@@ -29,6 +35,12 @@ services:
       - ./db/seeds.sql:/docker-entrypoint-initdb.d/02-seeds.sql:ro
       # Optional: Uncomment for persistent storage during development
       # - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 30s
     networks:
       - tcg-network
 
