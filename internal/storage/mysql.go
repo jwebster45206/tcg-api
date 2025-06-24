@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jwebster45206/tcg-api/internal/config"
@@ -15,6 +16,55 @@ type MySQLStorage struct {
 	writerDB *sql.DB
 	readerDB *sql.DB // Optional read replica, falls back to writerDB if nil
 	logger   *slog.Logger
+}
+
+// retryConnect attempts to connect to a database with exponential backoff
+func retryConnect(dsn string, logger *slog.Logger, dbType string) (*sql.DB, error) {
+	maxRetries := 10
+	initialDelay := 1 * time.Second
+	maxDelay := 30 * time.Second
+
+	var db *sql.DB
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		db, err = sql.Open("mysql", dsn)
+		if err != nil {
+			logger.Warn(fmt.Sprintf("Failed to open %s database connection", dbType),
+				slog.Int("attempt", i+1),
+				slog.Int("max_retries", maxRetries),
+				slog.Any("error", err))
+		} else {
+			// Test connection
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			err = db.PingContext(ctx)
+			cancel()
+
+			if err == nil {
+				logger.Info(fmt.Sprintf("Successfully connected to %s database", dbType),
+					slog.Int("attempt", i+1))
+				return db, nil
+			}
+
+			logger.Warn(fmt.Sprintf("Failed to ping %s database", dbType),
+				slog.Int("attempt", i+1),
+				slog.Int("max_retries", maxRetries),
+				slog.Any("error", err))
+			db.Close()
+		}
+
+		if i < maxRetries-1 {
+			delay := time.Duration(1<<uint(i)) * initialDelay
+			if delay > maxDelay {
+				delay = maxDelay
+			}
+			logger.Info(fmt.Sprintf("Retrying %s database connection", dbType),
+				slog.Duration("delay", delay))
+			time.Sleep(delay)
+		}
+	}
+
+	return nil, fmt.Errorf("failed to connect to %s database after %d attempts: %w", dbType, maxRetries, err)
 }
 
 // NewMySQLStorage creates a new MySQL storage instance
@@ -28,15 +78,9 @@ func NewMySQLStorage(writerConfig config.MySQLConfig, readerConfig *config.MySQL
 		writerConfig.DBName,
 	)
 
-	writerDB, err := sql.Open("mysql", writerDSN)
+	writerDB, err := retryConnect(writerDSN, logger, "writer")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open writer database connection: %w", err)
-	}
-
-	// Test writer connection
-	if err := writerDB.PingContext(context.Background()); err != nil {
-		writerDB.Close()
-		return nil, fmt.Errorf("failed to ping writer database: %w", err)
+		return nil, err
 	}
 
 	storage := &MySQLStorage{
@@ -54,23 +98,15 @@ func NewMySQLStorage(writerConfig config.MySQLConfig, readerConfig *config.MySQL
 			readerConfig.DBName,
 		)
 
-		readerDB, err := sql.Open("mysql", readerDSN)
+		readerDB, err := retryConnect(readerDSN, logger, "reader")
 		if err != nil {
-			logger.Warn("Failed to open reader database connection, will use writer for reads",
+			logger.Warn("Failed to connect to reader database, will use writer for reads",
 				slog.Any("error", err))
 		} else {
-			// Test reader connection
-			if err := readerDB.PingContext(context.Background()); err != nil {
-				logger.Warn("Failed to ping reader database, will use writer for reads",
-					slog.Any("error", err))
-				readerDB.Close()
-			} else {
-				storage.readerDB = readerDB
-				logger.Info("Successfully connected to MySQL read replica")
-			}
+			storage.readerDB = readerDB
+			logger.Info("Successfully connected to MySQL read replica")
 		}
 	}
 
-	logger.Info("Successfully connected to MySQL writer database")
 	return storage, nil
 }
