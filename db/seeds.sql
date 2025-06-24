@@ -6,17 +6,17 @@ INSERT INTO card_types (id, name, description) VALUES
 (2, 'playing', 'Traditional playing cards with suit and ranking');
 
 -- Sample image cards (stored entirely in cards table)
-INSERT INTO cards (id, name, description, card_type_id, image_url, alt_text) VALUES
-('550e8400-e29b-41d4-a716-446655440001', 'Dragon Artwork', 'Beautiful dragon illustration card', 1, 'https://example.com/images/dragon.jpg', 'Red dragon breathing fire'),
-('550e8400-e29b-41d4-a716-446655440002', 'Castle Scene', 'Medieval castle landscape artwork', 1, 'https://example.com/images/castle.jpg', 'Stone castle on hill'),
-('550e8400-e29b-41d4-a716-446655440003', 'Phoenix Rising', 'Majestic phoenix in flames', 1, 'https://example.com/images/phoenix.jpg', 'Phoenix with spread wings');
+INSERT INTO cards (uuid, name, description, card_type_id, front_image_url, back_image_url, alt_text) VALUES
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440001', '-', '')), 'Dragon Artwork', 'Beautiful dragon illustration card', 1, 'https://example.com/images/dragon-front.jpg', 'https://example.com/images/card-back.jpg', 'Red dragon breathing fire'),
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440002', '-', '')), 'Castle Scene', 'Medieval castle landscape artwork', 1, 'https://example.com/images/castle-front.jpg', 'https://example.com/images/card-back.jpg', 'Stone castle on hill'),
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440003', '-', '')), 'Phoenix Rising', 'Majestic phoenix in flames', 1, 'https://example.com/images/phoenix-front.jpg', 'https://example.com/images/card-back.jpg', 'Phoenix with spread wings');
 
 -- Sample playing cards (with image properties for consistency)
-INSERT INTO cards (id, name, description, card_type_id, image_url, alt_text) VALUES
-('550e8400-e29b-41d4-a716-446655440010', 'Ace of Spades', 'The death card', 2, 'https://example.com/cards/ace-spades.jpg', 'Ace of Spades playing card'),
-('550e8400-e29b-41d4-a716-446655440011', 'King of Hearts', 'The suicide king', 2, 'https://example.com/cards/king-hearts.jpg', 'King of Hearts playing card'),
-('550e8400-e29b-41d4-a716-446655440012', 'Queen of Diamonds', 'The lady of wealth', 2, 'https://example.com/cards/queen-diamonds.jpg', 'Queen of Diamonds playing card'),
-('550e8400-e29b-41d4-a716-446655440013', 'Jack of Clubs', 'The knave of clubs', 2, 'https://example.com/cards/jack-clubs.jpg', 'Jack of Clubs playing card');
+INSERT INTO cards (uuid, name, description, card_type_id, front_image_url, back_image_url, alt_text) VALUES
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440010', '-', '')), 'Ace of Spades', 'The death card', 2, 'https://example.com/cards/ace-spades.jpg', 'https://example.com/cards/playing-back.jpg', 'Ace of Spades playing card'),
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440011', '-', '')), 'King of Hearts', 'The suicide king', 2, 'https://example.com/cards/king-hearts.jpg', 'https://example.com/cards/playing-back.jpg', 'King of Hearts playing card'),
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440012', '-', '')), 'Queen of Diamonds', 'The lady of wealth', 2, 'https://example.com/cards/queen-diamonds.jpg', 'https://example.com/cards/playing-back.jpg', 'Queen of Diamonds playing card'),
+(UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440013', '-', '')), 'Jack of Clubs', 'The knave of clubs', 2, 'https://example.com/cards/jack-clubs.jpg', 'https://example.com/cards/playing-back.jpg', 'Jack of Clubs playing card');
 
 INSERT INTO playing_cards (id, suit, ranking) VALUES
 ('550e8400-e29b-41d4-a716-446655440010', 'spades', 1),     -- Ace of Spades

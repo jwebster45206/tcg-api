@@ -9,11 +9,13 @@ CREATE TABLE card_types (
 
 -- Cards table: base for all card types
 CREATE TABLE cards (
-    id CHAR(36) PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    uuid BINARY(16) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     card_type_id INT NOT NULL,
-    image_url VARCHAR(500),
+    front_image_url VARCHAR(500),
+    back_image_url VARCHAR(500),
     alt_text VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -31,5 +33,6 @@ CREATE TABLE playing_cards (
 -- TODO: Add deck_cards relationship table
 
 -- Performance indexes
+CREATE INDEX idx_cards_uuid ON cards(uuid);
 CREATE INDEX idx_cards_type_id ON cards(card_type_id);
 CREATE INDEX idx_cards_created_at ON cards(created_at);
