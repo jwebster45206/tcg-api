@@ -25,12 +25,15 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		From("image_cards").
 		PlaceholderFormat(squirrel.Question)
 
-	// Apply filters
+	// Mandatory filters
+	query = m.applyImageCardSystemFilters(query)
+
+	// User filters
 	for _, filter := range filters {
 		if validatedQuery, ok := m.applyValidatedFilter(query, filter, models.ImageCardQueryConfig); ok {
 			query = validatedQuery
 		}
-		// Silently skip invalid filters for security
+		// Silently skip invalid filters
 	}
 
 	// Apply sorting
@@ -38,10 +41,9 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		if validatedQuery, ok := m.applyValidatedSort(query, sort, models.ImageCardQueryConfig); ok {
 			query = validatedQuery
 		}
-		// Silently skip invalid sorts for security
+		// Silently skip invalid sorts
 	}
 
-	// Apply pagination
 	if pageSize > 0 {
 		query = query.Limit(uint64(pageSize))
 		if pageNum > 1 {
@@ -50,20 +52,17 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		}
 	}
 
-	// Generate SQL and args
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
 
-	// Execute query
 	rows, err := m.readerDB.QueryContext(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
 
-	// Scan results
 	var imageCards []*models.ImageCard
 	for rows.Next() {
 		imageCard := &models.ImageCard{}
@@ -79,14 +78,12 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image card: %w", err)
 		}
-
 		imageCards = append(imageCards, imageCard)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
-
 	return imageCards, nil
 }
 
@@ -104,6 +101,14 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 
 func (m *MySQLStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
 	return fmt.Errorf("not implemented")
+}
+
+// applyImageCardSystemFilters applies mandatory system filters for ImageCard operations
+// These filters ensure data isolation and business rules are always enforced
+func (m *MySQLStorage) applyImageCardSystemFilters(queryBuilder squirrel.SelectBuilder) squirrel.SelectBuilder {
+	return queryBuilder.
+		Where(squirrel.Eq{"card_type_id": 1}). // Only image cards
+		Where(squirrel.Eq{"deleted": false})   // Only non-deleted records
 }
 
 // applyValidatedFilter applies a filter only if it's in the allowed list
