@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,3 +47,37 @@ func (c *ImageCard) GetName() string          { return c.Name }
 func (c *ImageCard) GetFrontImageURL() string { return c.FrontImageURL }
 func (c *ImageCard) GetBackImageURL() string  { return c.BackImageURL }
 func (c *ImageCard) GetCardType() string      { return TypeImageCard }
+
+// Validate validates the ImageCard fields
+func (c *ImageCard) Validate() error {
+	if strings.TrimSpace(c.Name) == "" {
+		return errors.New("name is required")
+	}
+	if len(c.Name) > 255 {
+		return errors.New("name must be 255 characters or less")
+	}
+	if len(c.Description) > 1000 {
+		return errors.New("description must be 1000 characters or less")
+	}
+	if len(c.FrontImageURL) > 500 {
+		return errors.New("front_image_url must be 500 characters or less")
+	}
+	if len(c.BackImageURL) > 500 {
+		return errors.New("back_image_url must be 500 characters or less")
+	}
+	if c.FrontImageURL != "" && !isValidURL(c.FrontImageURL) {
+		return errors.New("front_image_url must be a valid URL")
+	}
+	if c.BackImageURL != "" && !isValidURL(c.BackImageURL) {
+		return errors.New("back_image_url must be a valid URL")
+	}
+	return nil
+}
+
+// isValidURL performs basic URL validation
+func isValidURL(urlStr string) bool {
+	if urlStr == "" {
+		return true // Empty URLs are allowed
+	}
+	return strings.HasPrefix(urlStr, "http://") || strings.HasPrefix(urlStr, "https://")
+}

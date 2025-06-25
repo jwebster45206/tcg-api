@@ -156,7 +156,7 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 		Set("description", imageCard.Description).
 		Set("front_image_url", imageCard.FrontImageURL).
 		Set("back_image_url", imageCard.BackImageURL).
-		Set("updated_at", "NOW()").
+		Set("updated_at", squirrel.Expr("NOW()")).
 		Where(squirrel.Eq{"uuid": imageCard.ID[:]}). // Convert UUID to []byte
 		Where(squirrel.Eq{"card_type_id": 1}).       // Only image cards
 		Where(squirrel.Eq{"deleted": false}).        // Only non-deleted records
