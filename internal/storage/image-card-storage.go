@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -171,6 +172,22 @@ func (m *MySQLStorage) applyFilter(queryBuilder squirrel.SelectBuilder, filter q
 			return queryBuilder.Where(squirrel.NotEq{filter.Column: nil})
 		default:
 			// For other operators with nil values, skip the filter
+			return queryBuilder
+		}
+	}
+
+	// Special handling for UUID fields stored as BINARY(16)
+	if uuidValue, ok := filter.Value.(uuid.UUID); ok {
+		// Convert UUID to hex string and use UNHEX() for proper comparison
+		hexStr := uuidValue.String()
+		hexStr = strings.ReplaceAll(hexStr, "-", "") // Remove dashes for UNHEX()
+		switch filter.Operator {
+		case query.OpEqual:
+			return queryBuilder.Where(filter.Column+" = UNHEX(?)", hexStr)
+		case query.OpNotEqual:
+			return queryBuilder.Where(filter.Column+" != UNHEX(?)", hexStr)
+		default:
+			// For other operators with UUID values, skip the filter
 			return queryBuilder
 		}
 	}

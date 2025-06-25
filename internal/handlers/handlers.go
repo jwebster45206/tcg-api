@@ -24,7 +24,6 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 	filterMap := make(map[string]map[string][]string)
 
 	for param, values := range r.URL.Query() {
-		// Check if this is a filter parameter
 		if !strings.HasPrefix(param, "filter[") || !strings.HasSuffix(param, "]") {
 			continue
 		}
@@ -57,7 +56,6 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 			}
 		}
 
-		// Validate operator
 		if !isValidOperator(operator) {
 			return nil, &ValidationError{
 				Field:   field,
@@ -65,25 +63,20 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 			}
 		}
 
-		// Initialize maps if needed
 		if filterMap[field] == nil {
 			filterMap[field] = make(map[string][]string)
 		}
-
-		// Add values to the map
 		filterMap[field][operator] = append(filterMap[field][operator], values...)
 	}
 
-	// Convert map to filters
 	for field, operatorMap := range filterMap {
-		dbColumn, _ := config.GetFilterDBColumn(field)
 		fieldType := config.GetFieldType(field)
 
 		for operatorStr, values := range operatorMap {
 			operator := normalizeOperator(operatorStr)
 
 			// Convert values to appropriate type
-			var value interface{}
+			var value any
 			if len(values) == 1 {
 				convertedValue, err := convertFilterValue(values[0], fieldType)
 				if err != nil {
@@ -110,13 +103,12 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 			}
 
 			filters = append(filters, query.Filter{
-				Column:   dbColumn,
+				Column:   field, // Keep API field name, let storage layer handle DB mapping
 				Operator: operator,
 				Value:    value,
 			})
 		}
 	}
-
 	return filters, nil
 }
 

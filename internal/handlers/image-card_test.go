@@ -308,7 +308,7 @@ func TestParseFilters(t *testing.T) {
 			name:        "UUID filter",
 			queryParams: "filter[id]=123e4567-e89b-12d3-a456-426614174000",
 			expected: []query.Filter{
-				{Column: "uuid", Operator: query.OpEqual, Value: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")},
+				{Column: "id", Operator: query.OpEqual, Value: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")},
 			},
 			expectError: false,
 		},
