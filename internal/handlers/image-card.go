@@ -74,7 +74,14 @@ func (h *ImageCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	cards, err := h.storage.ListImageCards(ctx)
+	// TODO: Parse query parameters for filters, sorts, and pagination
+	// For now, pass empty/default values
+	var filters []storage.Filter
+	var sorts []storage.SortOption
+	pageSize := 50 // Default page size
+	pageNum := 1   // Default to first page
+
+	cards, err := h.storage.ListImageCards(ctx, filters, sorts, pageSize, pageNum)
 	if err != nil {
 		h.logger.Error("Failed to list image cards",
 			slog.String("operation", "list_image_cards"),

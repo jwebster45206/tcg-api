@@ -282,7 +282,7 @@ func (m *MockStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (m *MockStorage) ListImageCards(ctx context.Context) ([]*models.ImageCard, error) {
+func (m *MockStorage) ListImageCards(ctx context.Context, filters []Filter, sorts []SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 

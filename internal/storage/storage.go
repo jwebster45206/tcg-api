@@ -7,6 +7,33 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/models"
 )
 
+// FilterOperator represents SQL comparison operators
+type FilterOperator string
+
+const (
+	OpEqual        FilterOperator = "="  // Auto converts to "IN" for arrays, "IS NULL" for nil
+	OpNotEqual     FilterOperator = "!=" // Auto converts to "NOT IN" for arrays, "IS NOT NULL" for nil
+	OpGreaterThan  FilterOperator = ">"
+	OpGreaterEqual FilterOperator = ">="
+	OpLessThan     FilterOperator = "<"
+	OpLessEqual    FilterOperator = "<="
+	OpLike         FilterOperator = "LIKE"
+	OpNotLike      FilterOperator = "NOT LIKE"
+)
+
+// Filter represents a single filter condition
+type Filter struct {
+	Column   string
+	Operator FilterOperator
+	Value    interface{} // nil, single value, or slice
+}
+
+// SortOption represents a field to sort by and its direction
+type SortOption struct {
+	Field string
+	Desc  bool // true for DESC, false for ASC
+}
+
 type Storage interface {
 	// Health check
 	Ping(ctx context.Context) error
@@ -19,7 +46,7 @@ type Storage interface {
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
 
 	// ImageCard operations
-	ListImageCards(ctx context.Context) ([]*models.ImageCard, error)
+	ListImageCards(ctx context.Context, filters []Filter, sorts []SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error)
 	GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error)
 	CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
 	UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
