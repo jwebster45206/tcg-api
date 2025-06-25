@@ -22,7 +22,7 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		"back_image_url",
 		"created_at",
 		"updated_at").
-		From("image_cards").
+		From("cards").
 		PlaceholderFormat(squirrel.Question)
 
 	// Mandatory filters
