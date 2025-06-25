@@ -33,6 +33,7 @@ services:
       # Schema and seed files
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./db/seeds.sql:/docker-entrypoint-initdb.d/02-seeds.sql:ro
+      - ./db/full-deck-seeds.sql:/docker-entrypoint-initdb.d/03-full-deck-seeds.sql:ro
       # Optional: Uncomment for persistent storage during development
       # - mysql_data:/var/lib/mysql
     healthcheck:
