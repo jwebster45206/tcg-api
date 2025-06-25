@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 // ImageCard represents a simple card with just imagery and basic info
@@ -15,6 +16,20 @@ type ImageCard struct {
 	BackImageURL  string    `json:"back_image_url"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// ImageCardQueryConfig defines allowed filters and sorts for ImageCard queries
+var ImageCardQueryConfig = query.QueryConfig{
+	AllowedFilters: map[string]string{
+		"id":         "uuid",
+		"name":       "name",
+		"created_at": "created_at",
+		"updated_at": "updated_at",
+	},
+	AllowedSorts: map[string]string{
+		"created_at": "created_at",
+		"updated_at": "updated_at",
+	},
 }
 
 const TypeImageCard = "imagecard"

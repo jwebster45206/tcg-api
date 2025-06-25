@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 var (
@@ -38,7 +39,6 @@ func NewMockStorage() Storage {
 	for _, card := range sampleCards {
 		storage.gameCards[card.ID] = card
 	}
-
 	return storage
 }
 
@@ -47,7 +47,6 @@ func (ms *MockStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-// ListGameCards returns all cards of the specified type
 func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -66,7 +65,6 @@ func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*mo
 	}
 }
 
-// GetGameCard returns a specific card by ID and type
 func (m *MockStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -84,13 +82,9 @@ func (m *MockStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*models.Ga
 func (m *MockStorage) CreateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	// Generate a new ID if not provided
 	if card.ID == uuid.Nil {
 		card.ID = uuid.New()
 	}
-
-	// Check if card already exists
 	if _, exists := m.gameCards[card.ID]; exists {
 		return nil, errors.New("card already exists")
 	}
@@ -102,12 +96,10 @@ func (m *MockStorage) CreateGameCard(ctx context.Context, card models.GameCard) 
 	return &cardCopy, nil
 }
 
-// UpdateGameCard updates an existing card in storage
 func (m *MockStorage) UpdateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if card exists
 	if _, exists := m.gameCards[card.ID]; !exists {
 		return nil, ErrNotFound
 	}
@@ -115,15 +107,12 @@ func (m *MockStorage) UpdateGameCard(ctx context.Context, card models.GameCard) 
 	// Store a copy to avoid external modifications
 	cardCopy := card
 	m.gameCards[card.ID] = &cardCopy
-
 	return &cardCopy, nil
 }
 
-// DeleteGameCard removes a card from storage
 func (m *MockStorage) DeleteGameCard(ctx context.Context, id uuid.UUID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// Check if card exists
 	if _, exists := m.gameCards[id]; !exists {
 		return ErrNotFound
 	}
@@ -133,7 +122,6 @@ func (m *MockStorage) DeleteGameCard(ctx context.Context, id uuid.UUID) error {
 
 // Deck operations
 
-// ListDecks returns all decks, optionally filtered by owner
 func (m *MockStorage) ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*models.Deck, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -146,11 +134,9 @@ func (m *MockStorage) ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*mod
 			decks = append(decks, &deckCopy)
 		}
 	}
-
 	return decks, nil
 }
 
-// GetDeck returns a specific deck by ID
 func (m *MockStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -165,17 +151,14 @@ func (m *MockStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, 
 	return &deckCopy, nil
 }
 
-// CreateDeck adds a new deck to storage
 func (m *MockStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Generate a new ID if not provided
 	if deck.ID == uuid.Nil {
 		deck.ID = uuid.New()
 	}
 
-	// Check if deck already exists
 	if _, exists := m.decks[deck.ID]; exists {
 		return nil, errors.New("deck already exists")
 	}
@@ -183,16 +166,13 @@ func (m *MockStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models
 	// Store a copy to avoid external modifications
 	deckCopy := deck
 	m.decks[deck.ID] = &deckCopy
-
 	return &deckCopy, nil
 }
 
-// UpdateDeck updates an existing deck in storage
 func (m *MockStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if deck exists
 	if _, exists := m.decks[deck.ID]; !exists {
 		return nil, ErrNotFound
 	}
@@ -200,20 +180,16 @@ func (m *MockStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models
 	// Store a copy to avoid external modifications
 	deckCopy := deck
 	m.decks[deck.ID] = &deckCopy
-
 	return &deckCopy, nil
 }
 
-// DeleteDeck removes a deck from storage
 func (m *MockStorage) DeleteDeck(ctx context.Context, id uuid.UUID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if deck exists
 	if _, exists := m.decks[id]; !exists {
 		return ErrNotFound
 	}
-
 	delete(m.decks, id)
 	return nil
 }
@@ -227,7 +203,6 @@ func (m *MockStorage) CreateImageCard(ctx context.Context, imageCard models.Imag
 		imageCard.ID = uuid.New()
 	}
 
-	// Check if image card already exists
 	if _, exists := m.imageCards[imageCard.ID]; exists {
 		return nil, errors.New("image card already exists")
 	}
@@ -235,7 +210,6 @@ func (m *MockStorage) CreateImageCard(ctx context.Context, imageCard models.Imag
 	// Store a copy to avoid external modifications
 	imageCopy := imageCard
 	m.imageCards[imageCard.ID] = &imageCopy
-
 	return &imageCopy, nil
 }
 
@@ -247,7 +221,6 @@ func (m *MockStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.I
 	if !exists {
 		return nil, ErrNotFound
 	}
-
 	// Return a copy to avoid modifying the original
 	imageCopy := *imageCard
 	return &imageCopy, nil
@@ -257,7 +230,6 @@ func (m *MockStorage) UpdateImageCard(ctx context.Context, imageCard models.Imag
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if image card exists
 	if _, exists := m.imageCards[imageCard.ID]; !exists {
 		return nil, ErrNotFound
 	}
@@ -265,7 +237,6 @@ func (m *MockStorage) UpdateImageCard(ctx context.Context, imageCard models.Imag
 	// Store a copy to avoid external modifications
 	imageCopy := imageCard
 	m.imageCards[imageCard.ID] = &imageCopy
-
 	return &imageCopy, nil
 }
 
@@ -273,19 +244,18 @@ func (m *MockStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if image card exists
 	if _, exists := m.imageCards[id]; !exists {
 		return ErrNotFound
 	}
-
 	delete(m.imageCards, id)
 	return nil
 }
 
-func (m *MockStorage) ListImageCards(ctx context.Context, filters []Filter, sorts []SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
+func (m *MockStorage) ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
+	// filter and sort are not implemented in mock storage
 	imageCards := make([]*models.ImageCard, 0, len(m.imageCards))
 	for _, imageCard := range m.imageCards {
 		// Create a copy to avoid modifying the original
@@ -295,7 +265,6 @@ func (m *MockStorage) ListImageCards(ctx context.Context, filters []Filter, sort
 	return imageCards, nil
 }
 
-// PlayingCard CRUD operations
 func (m *MockStorage) ListPlayingCards(ctx context.Context) ([]*models.PlayingCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -317,7 +286,6 @@ func (m *MockStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models
 	if !exists {
 		return nil, ErrNotFound
 	}
-
 	// Return a copy to avoid modifying the original
 	cardCopy := *playingCard
 	return &cardCopy, nil
@@ -327,17 +295,12 @@ func (m *MockStorage) CreatePlayingCard(ctx context.Context, card models.Playing
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Generate a new ID if not provided
 	if card.ID == uuid.Nil {
 		card.ID = uuid.New()
 	}
-
-	// Validate the card
 	if err := card.Validate(); err != nil {
 		return nil, err
 	}
-
-	// Check if playing card already exists
 	if _, exists := m.playingCards[card.ID]; exists {
 		return nil, errors.New("playing card already exists")
 	}
@@ -345,20 +308,15 @@ func (m *MockStorage) CreatePlayingCard(ctx context.Context, card models.Playing
 	// Store a copy to avoid external modifications
 	cardCopy := card
 	m.playingCards[card.ID] = &cardCopy
-
 	return &cardCopy, nil
 }
 
 func (m *MockStorage) UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	// Validate the card
 	if err := card.Validate(); err != nil {
 		return nil, err
 	}
-
-	// Check if playing card exists
 	if _, exists := m.playingCards[card.ID]; !exists {
 		return nil, ErrNotFound
 	}
@@ -366,19 +324,15 @@ func (m *MockStorage) UpdatePlayingCard(ctx context.Context, card models.Playing
 	// Store a copy to avoid external modifications
 	cardCopy := card
 	m.playingCards[card.ID] = &cardCopy
-
 	return &cardCopy, nil
 }
 
 func (m *MockStorage) DeletePlayingCard(ctx context.Context, id uuid.UUID) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	// Check if playing card exists
 	if _, exists := m.playingCards[id]; !exists {
 		return ErrNotFound
 	}
-
 	delete(m.playingCards, id)
 	return nil
 }

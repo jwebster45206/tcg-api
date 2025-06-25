@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/query"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -76,8 +77,8 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: Parse query parameters for filters, sorts, and pagination
 	// For now, pass empty/default values
-	var filters []storage.Filter
-	var sorts []storage.SortOption
+	var filters []query.Filter
+	var sorts []query.SortOption
 	pageSize := 50 // Default page size
 	pageNum := 1   // Default to first page
 

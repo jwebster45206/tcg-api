@@ -8,27 +8,37 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 // ImageCard operations
-func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []Filter, sorts []SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
+func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
 	// Start building the query
-	query := squirrel.Select("id", "name", "description", "front_image_url", "back_image_url", "created_at", "updated_at").
+	query := squirrel.Select(
+		"uuid",
+		"name",
+		"description",
+		"front_image_url",
+		"back_image_url",
+		"created_at",
+		"updated_at").
 		From("image_cards").
 		PlaceholderFormat(squirrel.Question)
 
 	// Apply filters
 	for _, filter := range filters {
-		query = m.applyFilter(query, filter)
+		if validatedQuery, ok := m.applyValidatedFilter(query, filter, models.ImageCardQueryConfig); ok {
+			query = validatedQuery
+		}
+		// Silently skip invalid filters for security
 	}
 
 	// Apply sorting
 	for _, sort := range sorts {
-		direction := "ASC"
-		if sort.Desc {
-			direction = "DESC"
+		if validatedQuery, ok := m.applyValidatedSort(query, sort, models.ImageCardQueryConfig); ok {
+			query = validatedQuery
 		}
-		query = query.OrderBy(sort.Field + " " + direction)
+		// Silently skip invalid sorts for security
 	}
 
 	// Apply pagination
@@ -69,6 +79,7 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []Filter, sor
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image card: %w", err)
 		}
+
 		imageCards = append(imageCards, imageCard)
 	}
 
@@ -77,59 +88,6 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []Filter, sor
 	}
 
 	return imageCards, nil
-}
-
-// applyFilter applies a single filter to the Squirrel query
-func (m *MySQLStorage) applyFilter(query squirrel.SelectBuilder, filter Filter) squirrel.SelectBuilder {
-	if filter.Value == nil {
-		// Handle NULL checks
-		switch filter.Operator {
-		case OpEqual:
-			return query.Where(squirrel.Eq{filter.Column: nil})
-		case OpNotEqual:
-			return query.Where(squirrel.NotEq{filter.Column: nil})
-		default:
-			// For other operators with nil values, skip the filter
-			return query
-		}
-	}
-
-	// Check if value is a slice (for IN/NOT IN operations)
-	val := reflect.ValueOf(filter.Value)
-	if val.Kind() == reflect.Slice {
-		switch filter.Operator {
-		case OpEqual:
-			return query.Where(squirrel.Eq{filter.Column: filter.Value})
-		case OpNotEqual:
-			return query.Where(squirrel.NotEq{filter.Column: filter.Value})
-		default:
-			// For other operators with slice values, skip the filter
-			return query
-		}
-	}
-
-	// Handle single values with various operators
-	switch filter.Operator {
-	case OpEqual:
-		return query.Where(squirrel.Eq{filter.Column: filter.Value})
-	case OpNotEqual:
-		return query.Where(squirrel.NotEq{filter.Column: filter.Value})
-	case OpGreaterThan:
-		return query.Where(squirrel.Gt{filter.Column: filter.Value})
-	case OpGreaterEqual:
-		return query.Where(squirrel.GtOrEq{filter.Column: filter.Value})
-	case OpLessThan:
-		return query.Where(squirrel.Lt{filter.Column: filter.Value})
-	case OpLessEqual:
-		return query.Where(squirrel.LtOrEq{filter.Column: filter.Value})
-	case OpLike:
-		return query.Where(squirrel.Like{filter.Column: filter.Value})
-	case OpNotLike:
-		return query.Where(squirrel.NotLike{filter.Column: filter.Value})
-	default:
-		// Unknown operator, skip the filter
-		return query
-	}
 }
 
 func (m *MySQLStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error) {
@@ -146,4 +104,91 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 
 func (m *MySQLStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
 	return fmt.Errorf("not implemented")
+}
+
+// applyValidatedFilter applies a filter only if it's in the allowed list
+func (m *MySQLStorage) applyValidatedFilter(queryBuilder squirrel.SelectBuilder, filter query.Filter, config query.QueryConfig) (squirrel.SelectBuilder, bool) {
+	// Check if filter is allowed and get database column
+	dbColumn, allowed := config.GetFilterDBColumn(filter.Column)
+	if !allowed {
+		return queryBuilder, false
+	}
+
+	// Apply the filter with the mapped database column
+	validatedFilter := query.Filter{
+		Column:   dbColumn,
+		Operator: filter.Operator,
+		Value:    filter.Value,
+	}
+
+	return m.applyFilter(queryBuilder, validatedFilter), true
+}
+
+// applyValidatedSort applies a sort only if it's in the allowed list
+func (m *MySQLStorage) applyValidatedSort(queryBuilder squirrel.SelectBuilder, sort query.SortOption, config query.QueryConfig) (squirrel.SelectBuilder, bool) {
+	// Check if sort field is allowed and get database column
+	dbColumn, allowed := config.GetSortDBColumn(sort.Field)
+	if !allowed {
+		return queryBuilder, false
+	}
+
+	// Apply the sort with the mapped database column
+	direction := "ASC"
+	if sort.Desc {
+		direction = "DESC"
+	}
+	return queryBuilder.OrderBy(dbColumn + " " + direction), true
+}
+
+// applyFilter applies a single filter to the Squirrel query (now only used internally with validated filters)
+func (m *MySQLStorage) applyFilter(queryBuilder squirrel.SelectBuilder, filter query.Filter) squirrel.SelectBuilder {
+	if filter.Value == nil {
+		// Handle NULL checks
+		switch filter.Operator {
+		case query.OpEqual:
+			return queryBuilder.Where(squirrel.Eq{filter.Column: nil})
+		case query.OpNotEqual:
+			return queryBuilder.Where(squirrel.NotEq{filter.Column: nil})
+		default:
+			// For other operators with nil values, skip the filter
+			return queryBuilder
+		}
+	}
+
+	// Check if value is a slice (for IN/NOT IN operations)
+	val := reflect.ValueOf(filter.Value)
+	if val.Kind() == reflect.Slice {
+		switch filter.Operator {
+		case query.OpEqual:
+			return queryBuilder.Where(squirrel.Eq{filter.Column: filter.Value})
+		case query.OpNotEqual:
+			return queryBuilder.Where(squirrel.NotEq{filter.Column: filter.Value})
+		default:
+			// For other operators with slice values, skip the filter
+			return queryBuilder
+		}
+	}
+
+	// Handle single values with various operators
+	switch filter.Operator {
+	case query.OpEqual:
+		return queryBuilder.Where(squirrel.Eq{filter.Column: filter.Value})
+	case query.OpNotEqual:
+		return queryBuilder.Where(squirrel.NotEq{filter.Column: filter.Value})
+	case query.OpGreaterThan:
+		return queryBuilder.Where(squirrel.Gt{filter.Column: filter.Value})
+	case query.OpGreaterEqual:
+		return queryBuilder.Where(squirrel.GtOrEq{filter.Column: filter.Value})
+	case query.OpLessThan:
+		return queryBuilder.Where(squirrel.Lt{filter.Column: filter.Value})
+	case query.OpLessEqual:
+		return queryBuilder.Where(squirrel.LtOrEq{filter.Column: filter.Value})
+	case query.OpLike:
+		return queryBuilder.Where(squirrel.Like{filter.Column: filter.Value})
+	case query.OpNotLike:
+		return queryBuilder.Where(squirrel.NotLike{filter.Column: filter.Value})
+	default:
+		// Unknown operator, skip the filter
+		return queryBuilder
+	}
 }
