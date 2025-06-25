@@ -17,6 +17,7 @@ CREATE TABLE cards (
     front_image_url VARCHAR(500),
     back_image_url VARCHAR(500),
     alt_text VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -34,8 +35,8 @@ CREATE TABLE playing_cards (
 -- TODO: Add decks table
 -- TODO: Add deck_cards relationship table
 
--- Performance indexes
 CREATE INDEX idx_cards_uuid ON cards(uuid);
 CREATE INDEX idx_cards_type_id ON cards(card_type_id);
 CREATE INDEX idx_cards_created_at ON cards(created_at);
+CREATE INDEX idx_cards_updated_at ON cards(updated_at);
 CREATE INDEX idx_playing_cards_card_id ON playing_cards(card_id);
