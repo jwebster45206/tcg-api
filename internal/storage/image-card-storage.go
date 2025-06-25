@@ -88,7 +88,22 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 }
 
 func (m *MySQLStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error) {
-	return nil, fmt.Errorf("not implemented")
+	filters := []query.Filter{
+		{
+			Column:   "id",
+			Operator: query.OpEqual,
+			Value:    id,
+		},
+	}
+
+	cards, err := m.ListImageCards(ctx, filters, []query.SortOption{}, 1, 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image card: %w", err)
+	}
+	if len(cards) == 0 {
+		return nil, ErrNotFound
+	}
+	return cards[0], nil
 }
 
 func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
