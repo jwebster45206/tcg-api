@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 type Storage interface {
@@ -19,7 +20,7 @@ type Storage interface {
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
 
 	// ImageCard operations
-	ListImageCards(ctx context.Context) ([]*models.ImageCard, error)
+	ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error)
 	GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error)
 	CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
 	UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)

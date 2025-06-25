@@ -4,14 +4,28 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/query"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
+
+// mustParseTime is a helper function for tests that parses a date string and panics on error
+func mustParseTime(dateStr string) time.Time {
+	t, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse time %s: %v", dateStr, err))
+	}
+	return t
+}
 
 func TestImageCardsHandler_ListCards(t *testing.T) {
 	req, err := http.NewRequest("GET", "/image-cards", nil)
@@ -256,5 +270,402 @@ func TestImageCardsHandler_MethodNotAllowed(t *testing.T) {
 	if status := rr.Code; status != http.StatusMethodNotAllowed {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusMethodNotAllowed)
+	}
+}
+
+func TestParseFilters(t *testing.T) {
+	tests := []struct {
+		name        string
+		queryParams string
+		expected    []query.Filter
+		expectError bool
+	}{
+		{
+			name:        "simple filter with equals",
+			queryParams: "filter[name]=john",
+			expected: []query.Filter{
+				{Column: "name", Operator: query.OpEqual, Value: "john"},
+			},
+			expectError: false,
+		},
+		{
+			name:        "filter with operator",
+			queryParams: "filter[name][like]=john",
+			expected: []query.Filter{
+				{Column: "name", Operator: query.OpLike, Value: "john"},
+			},
+			expectError: false,
+		},
+		{
+			name:        "multiple values for same field",
+			queryParams: "filter[name]=john&filter[name]=jane",
+			expected: []query.Filter{
+				{Column: "name", Operator: query.OpEqual, Value: []interface{}{"john", "jane"}},
+			},
+			expectError: false,
+		},
+		{
+			name:        "UUID filter",
+			queryParams: "filter[id]=123e4567-e89b-12d3-a456-426614174000",
+			expected: []query.Filter{
+				{Column: "id", Operator: query.OpEqual, Value: uuid.MustParse("123e4567-e89b-12d3-a456-426614174000")},
+			},
+			expectError: false,
+		},
+		{
+			name:        "null value filter",
+			queryParams: "filter[name]=null",
+			expected: []query.Filter{
+				{Column: "name", Operator: query.OpEqual, Value: nil},
+			},
+			expectError: false,
+		},
+		{
+			name:        "multiple different filters",
+			queryParams: "filter[name]=john&filter[created_at][gte]=2023-01-01",
+			expected: []query.Filter{
+				{Column: "name", Operator: query.OpEqual, Value: "john"},
+				{Column: "created_at", Operator: query.OpGreaterEqual, Value: mustParseTime("2023-01-01")},
+			},
+			expectError: false,
+		},
+		{
+			name:        "disallowed field",
+			queryParams: "filter[secret]=value",
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "invalid operator",
+			queryParams: "filter[name][invalid]=value",
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "no filters",
+			queryParams: "",
+			expected:    []query.Filter{},
+			expectError: false,
+		},
+		{
+			name:        "non-filter parameters ignored",
+			queryParams: "page=1&filter[name]=john&limit=10",
+			expected: []query.Filter{
+				{Column: "name", Operator: query.OpEqual, Value: "john"},
+			},
+			expectError: false,
+		},
+		{
+			name:        "invalid UUID format",
+			queryParams: "filter[id]=invalid-uuid",
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "invalid datetime format",
+			queryParams: "filter[created_at]=invalid-date",
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request with query parameters
+			req := httptest.NewRequest("GET", "/image-cards?"+tt.queryParams, nil)
+
+			filters, err := ParseFilters(req, models.ImageCardQueryConfig)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if len(filters) != len(tt.expected) {
+				t.Errorf("Expected %d filters, got %d", len(tt.expected), len(filters))
+				return
+			}
+
+			// Sort filters by column for consistent comparison
+			sort.Slice(filters, func(i, j int) bool {
+				return filters[i].Column < filters[j].Column
+			})
+			sort.Slice(tt.expected, func(i, j int) bool {
+				return tt.expected[i].Column < tt.expected[j].Column
+			})
+
+			for i, expected := range tt.expected {
+				actual := filters[i]
+				if actual.Column != expected.Column {
+					t.Errorf("Filter %d: expected column %s, got %s", i, expected.Column, actual.Column)
+				}
+				if actual.Operator != expected.Operator {
+					t.Errorf("Filter %d: expected operator %s, got %s", i, expected.Operator, actual.Operator)
+				}
+
+				// Compare values - handle arrays specially
+				if !compareFilterValues(actual.Value, expected.Value) {
+					t.Errorf("Filter %d: expected value %v, got %v", i, expected.Value, actual.Value)
+				}
+			}
+		})
+	}
+}
+
+// compareFilterValues compares two filter values, handling arrays and different types
+func compareFilterValues(actual, expected interface{}) bool {
+	// Handle nil values
+	if actual == nil && expected == nil {
+		return true
+	}
+	if actual == nil || expected == nil {
+		return false
+	}
+
+	// Handle arrays
+	actualSlice, actualIsSlice := actual.([]interface{})
+	expectedSlice, expectedIsSlice := expected.([]interface{})
+
+	if actualIsSlice && expectedIsSlice {
+		if len(actualSlice) != len(expectedSlice) {
+			return false
+		}
+
+		// Sort both slices as strings for comparison
+		actualStrs := make([]string, len(actualSlice))
+		expectedStrs := make([]string, len(expectedSlice))
+
+		for i, v := range actualSlice {
+			actualStrs[i] = fmt.Sprintf("%v", v)
+		}
+		for i, v := range expectedSlice {
+			expectedStrs[i] = fmt.Sprintf("%v", v)
+		}
+
+		sort.Strings(actualStrs)
+		sort.Strings(expectedStrs)
+
+		for i := range actualStrs {
+			if actualStrs[i] != expectedStrs[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	if actualIsSlice || expectedIsSlice {
+		return false // One is slice, other isn't
+	}
+
+	// Handle regular values
+	return fmt.Sprintf("%v", actual) == fmt.Sprintf("%v", expected)
+}
+
+func TestParseSorts(t *testing.T) {
+	tests := []struct {
+		name        string
+		queryParams string
+		expected    []query.SortOption
+		wantError   bool
+		errorMsg    string
+	}{
+		{
+			name:        "no sort parameter",
+			queryParams: "",
+			expected:    []query.SortOption{},
+			wantError:   false,
+		},
+		{
+			name:        "single sort ascending",
+			queryParams: "sort=created_at",
+			expected: []query.SortOption{
+				{Field: "created_at", Desc: false},
+			},
+			wantError: false,
+		},
+		{
+			name:        "single sort descending",
+			queryParams: "sort=-created_at",
+			expected: []query.SortOption{
+				{Field: "created_at", Desc: true},
+			},
+			wantError: false,
+		},
+		{
+			name:        "multiple sorts",
+			queryParams: "sort=created_at,-updated_at",
+			expected: []query.SortOption{
+				{Field: "created_at", Desc: false},
+				{Field: "updated_at", Desc: true},
+			},
+			wantError: false,
+		},
+		{
+			name:        "disallowed sort field",
+			queryParams: "sort=secret_field",
+			expected:    nil,
+			wantError:   true,
+			errorMsg:    "Field 'secret_field' is not allowed for sorting",
+		},
+		{
+			name:        "mixed allowed and disallowed",
+			queryParams: "sort=created_at,secret_field",
+			expected:    nil,
+			wantError:   true,
+			errorMsg:    "Field 'secret_field' is not allowed for sorting",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request with query parameters
+			req := httptest.NewRequest("GET", "/image-cards?"+tt.queryParams, nil)
+
+			sorts, err := ParseSorts(req, models.ImageCardQueryConfig)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errorMsg, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if len(sorts) != len(tt.expected) {
+				t.Errorf("Expected %d sorts, got %d", len(tt.expected), len(sorts))
+				return
+			}
+
+			for i, expected := range tt.expected {
+				if sorts[i].Field != expected.Field || sorts[i].Desc != expected.Desc {
+					t.Errorf("Sort %d: expected %+v, got %+v", i, expected, sorts[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParsePagination(t *testing.T) {
+	tests := []struct {
+		name           string
+		queryParams    string
+		expectedOffset int
+		expectedLimit  int
+		wantError      bool
+		errorMsg       string
+	}{
+		{
+			name:           "no pagination parameters",
+			queryParams:    "",
+			expectedOffset: 0,
+			expectedLimit:  50,
+			wantError:      false,
+		},
+		{
+			name:           "page-based pagination",
+			queryParams:    "page=2&page_size=25",
+			expectedOffset: 25,
+			expectedLimit:  25,
+			wantError:      false,
+		},
+		{
+			name:           "page only (default page size)",
+			queryParams:    "page=3",
+			expectedOffset: 100,
+			expectedLimit:  50,
+			wantError:      false,
+		},
+		{
+			name:           "offset-based pagination",
+			queryParams:    "offset=10&limit=20",
+			expectedOffset: 10,
+			expectedLimit:  20,
+			wantError:      false,
+		},
+		{
+			name:           "offset only (default limit)",
+			queryParams:    "offset=15",
+			expectedOffset: 15,
+			expectedLimit:  50,
+			wantError:      false,
+		},
+		{
+			name:        "invalid page",
+			queryParams: "page=0",
+			wantError:   true,
+			errorMsg:    "Page must be a positive integer",
+		},
+		{
+			name:        "invalid page size",
+			queryParams: "page=1&page_size=150",
+			wantError:   true,
+			errorMsg:    "Page size must be between 1 and 100",
+		},
+		{
+			name:        "invalid offset",
+			queryParams: "offset=-5",
+			wantError:   true,
+			errorMsg:    "Offset must be a non-negative integer",
+		},
+		{
+			name:        "invalid limit",
+			queryParams: "limit=150",
+			wantError:   true,
+			errorMsg:    "Limit must be between 1 and 100",
+		},
+		{
+			name:        "non-numeric page",
+			queryParams: "page=abc",
+			wantError:   true,
+			errorMsg:    "Page must be a positive integer",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request with query parameters
+			req := httptest.NewRequest("GET", "/image-cards?"+tt.queryParams, nil)
+
+			offset, limit, err := ParsePagination(req)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+					return
+				}
+				if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("Expected error containing '%s', got '%s'", tt.errorMsg, err.Error())
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if offset != tt.expectedOffset {
+				t.Errorf("Expected offset %d, got %d", tt.expectedOffset, offset)
+			}
+
+			if limit != tt.expectedLimit {
+				t.Errorf("Expected limit %d, got %d", tt.expectedLimit, limit)
+			}
+		})
 	}
 }

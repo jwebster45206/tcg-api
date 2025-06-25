@@ -36,6 +36,7 @@ func NewMySQLStorage(writerConfig config.MySQLConfig, readerConfig *config.MySQL
 
 	storage := &MySQLStorage{
 		writerDB: writerDB,
+		readerDB: writerDB, // Default to writer for reads
 		logger:   logger,
 	}
 
@@ -114,7 +115,7 @@ func (ms *MySQLStorage) Ping(ctx context.Context) error {
 	if err := ms.writerDB.PingContext(ctx); err != nil {
 		return fmt.Errorf("writer database ping failed: %w", err)
 	}
-	if ms.readerDB != nil {
+	if ms.readerDB != nil && ms.readerDB != ms.writerDB {
 		if err := ms.readerDB.PingContext(ctx); err != nil {
 			return fmt.Errorf("reader database ping failed: %w", err)
 		}
