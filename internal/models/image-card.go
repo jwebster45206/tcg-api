@@ -30,6 +30,12 @@ var ImageCardQueryConfig = query.QueryConfig{
 		"created_at": "created_at",
 		"updated_at": "updated_at",
 	},
+	FieldTypes: map[string]query.FieldType{
+		"id":         query.FieldTypeUUID,
+		"name":       query.FieldTypeString,
+		"created_at": query.FieldTypeDateTime,
+		"updated_at": query.FieldTypeDateTime,
+	},
 }
 
 const TypeImageCard = "imagecard"

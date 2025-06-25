@@ -1,5 +1,16 @@
 package query
 
+type FieldType string
+
+const (
+	FieldTypeString   FieldType = "string"
+	FieldTypeUUID     FieldType = "uuid"
+	FieldTypeInt      FieldType = "int"
+	FieldTypeFloat    FieldType = "float"
+	FieldTypeBool     FieldType = "bool"
+	FieldTypeDateTime FieldType = "datetime"
+)
+
 type FilterOperator string
 
 const (
@@ -27,8 +38,9 @@ type SortOption struct {
 }
 
 type QueryConfig struct {
-	AllowedFilters map[string]string // map[apiField]dbColumn
-	AllowedSorts   map[string]string // map[apiField]dbColumn
+	AllowedFilters map[string]string    // map[apiField]dbColumn
+	AllowedSorts   map[string]string    // map[apiField]dbColumn
+	FieldTypes     map[string]FieldType // map[apiField]fieldType
 }
 
 func (c QueryConfig) IsFilterAllowed(field string) bool {
@@ -49,4 +61,12 @@ func (c QueryConfig) GetFilterDBColumn(field string) (string, bool) {
 func (c QueryConfig) GetSortDBColumn(field string) (string, bool) {
 	dbCol, exists := c.AllowedSorts[field]
 	return dbCol, exists
+}
+
+func (c QueryConfig) GetFieldType(field string) FieldType {
+	fieldType, exists := c.FieldTypes[field]
+	if !exists {
+		return FieldTypeString // Default to string if not specified
+	}
+	return fieldType
 }

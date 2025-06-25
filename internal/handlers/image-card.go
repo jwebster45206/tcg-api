@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/models"
-	"github.com/jwebster45206/tcg-api/internal/query"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -75,12 +75,83 @@ func (h *ImageCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// TODO: Parse query parameters for filters, sorts, and pagination
-	// For now, pass empty/default values
-	var filters []query.Filter
-	var sorts []query.SortOption
-	pageSize := 50 // Default page size
-	pageNum := 1   // Default to first page
+	filters, err := ParseFilters(r, models.ImageCardQueryConfig)
+	if err != nil {
+		h.logger.Error("Failed to parse filters",
+			slog.String("operation", "parse_filters"),
+			slog.Any("error", err))
+
+		var validationErr *ValidationError
+		var response ErrorResponse
+		if errors.As(err, &validationErr) {
+			response = ErrorResponse{
+				Error:   "validation_error",
+				Message: validationErr.Message,
+			}
+			writeJSONResponse(w, http.StatusBadRequest, response)
+		} else {
+			response = ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to parse query parameters",
+			}
+			writeJSONResponse(w, http.StatusInternalServerError, response)
+		}
+		return
+	}
+
+	// Parse sorts from query parameters
+	sorts, err := ParseSorts(r, models.ImageCardQueryConfig)
+	if err != nil {
+		h.logger.Error("Failed to parse sorts",
+			slog.String("operation", "parse_sorts"),
+			slog.Any("error", err))
+
+		var validationErr *ValidationError
+		var response ErrorResponse
+		if errors.As(err, &validationErr) {
+			response = ErrorResponse{
+				Error:   "validation_error",
+				Message: validationErr.Message,
+			}
+			writeJSONResponse(w, http.StatusBadRequest, response)
+		} else {
+			response = ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to parse query parameters",
+			}
+			writeJSONResponse(w, http.StatusInternalServerError, response)
+		}
+		return
+	}
+
+	// Parse pagination from query parameters
+	offset, limit, err := ParsePagination(r)
+	if err != nil {
+		h.logger.Error("Failed to parse pagination",
+			slog.String("operation", "parse_pagination"),
+			slog.Any("error", err))
+
+		var validationErr *ValidationError
+		var response ErrorResponse
+		if errors.As(err, &validationErr) {
+			response = ErrorResponse{
+				Error:   "validation_error",
+				Message: validationErr.Message,
+			}
+			writeJSONResponse(w, http.StatusBadRequest, response)
+		} else {
+			response = ErrorResponse{
+				Error:   "internal_error",
+				Message: "Failed to parse query parameters",
+			}
+			writeJSONResponse(w, http.StatusInternalServerError, response)
+		}
+		return
+	}
+
+	// Convert offset/limit to page-based parameters for storage layer
+	pageSize := limit
+	pageNum := (offset / limit) + 1
 
 	cards, err := h.storage.ListImageCards(ctx, filters, sorts, pageSize, pageNum)
 	if err != nil {

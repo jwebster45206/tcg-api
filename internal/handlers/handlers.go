@@ -3,9 +3,229 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jwebster45206/tcg-api/internal/query"
 )
+
+// ParseFilters parses filter parameters from an HTTP request using filter array syntax
+// Format: filter[field][operator]=value or filter[field]=value (defaults to '=' operator)
+// Returns a slice of filters or an error if validation fails
+func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, error) {
+	var filters []query.Filter
+
+	// Group values by field and operator combination
+	filterMap := make(map[string]map[string][]string)
+
+	for param, values := range r.URL.Query() {
+		// Check if this is a filter parameter
+		if !strings.HasPrefix(param, "filter[") || !strings.HasSuffix(param, "]") {
+			continue
+		}
+
+		// Parse filter[field] or filter[field][operator]
+		content := param[7 : len(param)-1] // Remove "filter[" and "]"
+
+		var field, operator string
+
+		// Check if we have nested brackets for operator
+		if strings.Contains(content, "][") {
+			parts := strings.Split(content, "][")
+			if len(parts) != 2 {
+				return nil, &ValidationError{
+					Field:   "filter",
+					Message: "Invalid filter format",
+				}
+			}
+			field = parts[0]
+			operator = parts[1]
+		} else {
+			field = content
+			operator = "=" // Default
+		}
+
+		if !config.IsFilterAllowed(field) {
+			return nil, &ValidationError{
+				Field:   field,
+				Message: "Not allowed",
+			}
+		}
+
+		// Validate operator
+		if !isValidOperator(operator) {
+			return nil, &ValidationError{
+				Field:   field,
+				Message: "Invalid operator",
+			}
+		}
+
+		// Initialize maps if needed
+		if filterMap[field] == nil {
+			filterMap[field] = make(map[string][]string)
+		}
+
+		// Add values to the map
+		filterMap[field][operator] = append(filterMap[field][operator], values...)
+	}
+
+	// Convert map to filters
+	for field, operatorMap := range filterMap {
+		dbColumn, _ := config.GetFilterDBColumn(field)
+		fieldType := config.GetFieldType(field)
+
+		for operatorStr, values := range operatorMap {
+			operator := normalizeOperator(operatorStr)
+
+			// Convert values to appropriate type
+			var value interface{}
+			if len(values) == 1 {
+				convertedValue, err := convertFilterValue(values[0], fieldType)
+				if err != nil {
+					return nil, &ValidationError{
+						Field:   field,
+						Message: fmt.Sprintf("Invalid value for field '%s': %v", field, err),
+					}
+				}
+				value = convertedValue
+			} else if len(values) > 1 {
+				// Multiple values - create array
+				convertedValues := make([]interface{}, len(values))
+				for i, v := range values {
+					convertedValue, err := convertFilterValue(v, fieldType)
+					if err != nil {
+						return nil, &ValidationError{
+							Field:   field,
+							Message: fmt.Sprintf("Invalid value for field '%s': %v", field, err),
+						}
+					}
+					convertedValues[i] = convertedValue
+				}
+				value = convertedValues
+			}
+
+			filters = append(filters, query.Filter{
+				Column:   dbColumn,
+				Operator: operator,
+				Value:    value,
+			})
+		}
+	}
+
+	return filters, nil
+}
+
+// ParseSorts parses sort parameters from an HTTP request
+// Format: sort=field1,-field2,field3 (- prefix for descending)
+// Returns a slice of sort options or an error if validation fails
+func ParseSorts(r *http.Request, config query.QueryConfig) ([]query.SortOption, error) {
+	var sorts []query.SortOption
+
+	sortParam := r.URL.Query().Get("sort")
+	if sortParam == "" {
+		return sorts, nil
+	}
+
+	// Split by comma
+	sortFields := strings.Split(sortParam, ",")
+
+	for _, field := range sortFields {
+		field = strings.TrimSpace(field)
+		if field == "" {
+			continue
+		}
+
+		var sortField string
+		var desc bool
+
+		// Check for descending prefix
+		if strings.HasPrefix(field, "-") {
+			desc = true
+			sortField = field[1:]
+		} else {
+			desc = false
+			sortField = field
+		}
+
+		// Validate field is allowed
+		if !config.IsSortAllowed(sortField) {
+			return nil, &ValidationError{
+				Field:   "sort",
+				Message: "Field '" + sortField + "' is not allowed for sorting",
+			}
+		}
+
+		dbColumn, _ := config.GetSortDBColumn(sortField)
+		sorts = append(sorts, query.SortOption{
+			Field: dbColumn,
+			Desc:  desc,
+		})
+	}
+
+	return sorts, nil
+}
+
+// ParsePagination parses pagination parameters from an HTTP request
+// Supports both offset-based (offset, limit) and page-based (page, page_size) pagination
+// Returns offset, limit values or an error if validation fails
+func ParsePagination(r *http.Request) (offset, limit int, err error) {
+	// Default values
+	limit = 50
+	offset = 0
+
+	// Try page-based pagination first
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		page, err := strconv.Atoi(pageStr)
+		if err != nil || page < 1 {
+			return 0, 0, &ValidationError{
+				Field:   "page",
+				Message: "Page must be a positive integer",
+			}
+		}
+
+		pageSize := 50 // Default page size
+		if pageSizeStr := r.URL.Query().Get("page_size"); pageSizeStr != "" {
+			pageSize, err = strconv.Atoi(pageSizeStr)
+			if err != nil || pageSize < 1 || pageSize > 100 {
+				return 0, 0, &ValidationError{
+					Field:   "page_size",
+					Message: "Page size must be between 1 and 100",
+				}
+			}
+		}
+
+		offset = (page - 1) * pageSize
+		limit = pageSize
+	} else {
+		// Try offset-based pagination
+		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+			offset, err = strconv.Atoi(offsetStr)
+			if err != nil || offset < 0 {
+				return 0, 0, &ValidationError{
+					Field:   "offset",
+					Message: "Offset must be a non-negative integer",
+				}
+			}
+		}
+
+		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+			limit, err = strconv.Atoi(limitStr)
+			if err != nil || limit < 1 || limit > 100 {
+				return 0, 0, &ValidationError{
+					Field:   "limit",
+					Message: "Limit must be between 1 and 100",
+				}
+			}
+		}
+	}
+
+	return offset, limit, nil
+}
 
 // ErrorResponse represents an error response structure
 type ErrorResponse struct {
@@ -28,4 +248,84 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) 
 	if err != nil {
 		log.Printf("Failed to write response: %v", err)
 	}
+}
+
+// isValidOperator checks if the given operator string is valid
+func isValidOperator(op string) bool {
+	switch strings.ToLower(op) {
+	case "=", "eq", "!=", "ne", "not_equal", ">", "gt", ">=", "gte", "greater_equal", "<", "lt", "<=", "lte", "less_equal", "like", "not_like":
+		return true
+	default:
+		return false
+	}
+}
+
+// normalizeOperator converts operator aliases to standard FilterOperator
+func normalizeOperator(op string) query.FilterOperator {
+	switch strings.ToLower(op) {
+	case "=", "eq":
+		return query.OpEqual
+	case "!=", "ne", "not_equal":
+		return query.OpNotEqual
+	case ">", "gt":
+		return query.OpGreaterThan
+	case ">=", "gte", "greater_equal":
+		return query.OpGreaterEqual
+	case "<", "lt":
+		return query.OpLessThan
+	case "<=", "lte", "less_equal":
+		return query.OpLessEqual
+	case "like":
+		return query.OpLike
+	case "not_like":
+		return query.OpNotLike
+	default:
+		return query.FilterOperator(op) // Fallback to original
+	}
+}
+
+// convertFilterValue converts a string value to appropriate type
+// convertFilterValue converts a string value to the appropriate type based on field type
+func convertFilterValue(value string, fieldType query.FieldType) (interface{}, error) {
+	// Handle null/nil
+	if value == "" || strings.ToLower(value) == "null" {
+		return nil, nil
+	}
+
+	switch fieldType {
+	case query.FieldTypeUUID:
+		return uuid.Parse(value)
+	case query.FieldTypeInt:
+		return strconv.Atoi(value)
+	case query.FieldTypeFloat:
+		return strconv.ParseFloat(value, 64)
+	case query.FieldTypeBool:
+		return strconv.ParseBool(value)
+	case query.FieldTypeDateTime:
+		// Try RFC3339 first, then other common formats
+		if t, err := time.Parse(time.RFC3339, value); err == nil {
+			return t, nil
+		}
+		if t, err := time.Parse("2006-01-02", value); err == nil {
+			return t, nil
+		}
+		if t, err := time.Parse("2006-01-02 15:04:05", value); err == nil {
+			return t, nil
+		}
+		return nil, fmt.Errorf("invalid datetime format: %s", value)
+	case query.FieldTypeString:
+		fallthrough
+	default:
+		return value, nil
+	}
+}
+
+// ValidationError represents a validation error
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
 }
