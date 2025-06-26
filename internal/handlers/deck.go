@@ -237,11 +237,13 @@ func (h *DecksHandler) handleError(w http.ResponseWriter, err error, defaultStat
 	if errors.As(err, &validationErr) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if encErr := json.NewEncoder(w).Encode(map[string]interface{}{
 			"error":   "validation_error",
 			"field":   validationErr.Field,
 			"message": validationErr.Message,
-		})
+		}); encErr != nil {
+			h.logger.Error("Failed to encode validation error response", "error", encErr)
+		}
 		return
 	}
 
