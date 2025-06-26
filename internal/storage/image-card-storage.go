@@ -26,7 +26,8 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		PlaceholderFormat(squirrel.Question)
 
 	// Mandatory filters
-	query = m.applyImageCardSystemFilters(query)
+	query.Where(squirrel.Eq{"card_type_id": 1}) // Only image cards
+	query.Where(squirrel.Eq{"deleted": false})  // Only non-deleted records
 
 	// User filters
 	for _, filter := range filters {
@@ -208,14 +209,6 @@ func (m *MySQLStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error 
 		return ErrNotFound
 	}
 	return nil
-}
-
-// applyImageCardSystemFilters applies mandatory system filters for ImageCard operations
-// These filters ensure data isolation and business rules are always enforced
-func (m *MySQLStorage) applyImageCardSystemFilters(queryBuilder squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return queryBuilder.
-		Where(squirrel.Eq{"card_type_id": 1}). // Only image cards
-		Where(squirrel.Eq{"deleted": false})   // Only non-deleted records
 }
 
 // applyValidatedFilter applies a filter only if it's in the allowed list

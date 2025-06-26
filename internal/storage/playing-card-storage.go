@@ -26,7 +26,9 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		Join("playing_cards pc ON c.id = pc.card_id").
 		PlaceholderFormat(squirrel.Question)
 
-	queryBuilder = m.applyPlayingCardSystemFilters(queryBuilder)
+	// Mandatory filters
+	queryBuilder.Where(squirrel.Eq{"c.card_type_id": 2}) // Only playing cards
+	queryBuilder.Where(squirrel.Eq{"c.deleted": false})  // Only non-deleted records
 
 	for _, filter := range filters {
 		if validatedQuery, ok := m.applyValidatedFilter(queryBuilder, filter, models.PlayingCardQueryConfig); ok {
@@ -81,14 +83,6 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
 	return playingCards, nil
-}
-
-// applyPlayingCardSystemFilters applies mandatory system filters for PlayingCard operations
-// These filters ensure data isolation and business rules are always enforced
-func (m *MySQLStorage) applyPlayingCardSystemFilters(queryBuilder squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return queryBuilder.
-		Where(squirrel.Eq{"c.card_type_id": 2}). // Only playing cards
-		Where(squirrel.Eq{"c.deleted": false})   // Only non-deleted records
 }
 
 func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error) {
