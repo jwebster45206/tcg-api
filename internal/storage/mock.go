@@ -21,6 +21,7 @@ type MockStorage struct {
 	decks        map[uuid.UUID]*models.Deck
 	imageCards   map[uuid.UUID]*models.ImageCard
 	playingCards map[uuid.UUID]*models.PlayingCard
+	deckCards    map[uuid.UUID][]*models.CardWithQuantity // deckID -> cards
 }
 
 // NewMockStorage creates a new MockStorage instance with some sample data
@@ -30,6 +31,7 @@ func NewMockStorage() Storage {
 		decks:        make(map[uuid.UUID]*models.Deck),
 		imageCards:   make(map[uuid.UUID]*models.ImageCard),
 		playingCards: make(map[uuid.UUID]*models.PlayingCard),
+		deckCards:    make(map[uuid.UUID][]*models.CardWithQuantity),
 	}
 
 	// Add some sample cards for development
@@ -351,39 +353,37 @@ func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*m
 		return nil, ErrNotFound
 	}
 
-	// For mock storage, return some sample cards with quantities
-	// In a real implementation, this would query the deck_cards relationship table
-	cards := make([]*models.CardWithQuantity, 0)
-
-	// Add some sample playing cards if any exist in storage
-	count := 0
-	for _, playingCard := range m.playingCards {
-		if count >= 3 { // Limit to 3 cards for mock
-			break
+	// Return stored cards for this deck if they exist
+	if cards, exists := m.deckCards[deckID]; exists {
+		// Return a copy to prevent external modification
+		result := make([]*models.CardWithQuantity, len(cards))
+		for i, card := range cards {
+			cardCopy := *card
+			result[i] = &cardCopy
 		}
-		cardCopy := *playingCard
-		cardWithQuantity := &models.CardWithQuantity{
-			Card:     &cardCopy,
-			Quantity: count + 1, // Sample quantities: 1, 2, 3
-		}
-		cards = append(cards, cardWithQuantity)
-		count++
+		return result, nil
 	}
 
-	// Add some sample image cards if any exist in storage
-	count = 0
-	for _, imageCard := range m.imageCards {
-		if count >= 2 { // Limit to 2 cards for mock
-			break
-		}
-		cardCopy := *imageCard
-		cardWithQuantity := &models.CardWithQuantity{
-			Card:     &cardCopy,
-			Quantity: count + 1, // Sample quantities: 1, 2
-		}
-		cards = append(cards, cardWithQuantity)
-		count++
+	// If no cards are explicitly set, return empty slice
+	return []*models.CardWithQuantity{}, nil
+}
+
+func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardWithQuantity) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Check if the deck exists
+	if _, exists := m.decks[deckID]; !exists {
+		return ErrNotFound
 	}
 
-	return cards, nil
+	// Convert slice to pointer slice and store
+	cardPtrs := make([]*models.CardWithQuantity, len(cards))
+	for i, card := range cards {
+		cardCopy := card // Create a copy to avoid pointer issues
+		cardPtrs[i] = &cardCopy
+	}
+
+	m.deckCards[deckID] = cardPtrs
+	return nil
 }

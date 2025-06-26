@@ -2,7 +2,9 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -318,4 +320,95 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
 	return cards, nil
+}
+
+func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardWithQuantity) error {
+	// Start transaction
+	tx, err := m.writerDB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Get the deck's internal ID and verify it exists
+	var internalDeckID int
+	err = tx.QueryRowContext(ctx, "SELECT id FROM decks WHERE uuid = ? AND deleted = false", deckID[:]).Scan(&internalDeckID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNotFound
+		}
+		return fmt.Errorf("failed to find deck: %w", err)
+	}
+
+	// Delete existing cards for this deck
+	_, err = tx.ExecContext(ctx, "DELETE FROM deck_cards WHERE deck_id = ?", internalDeckID)
+	if err != nil {
+		return fmt.Errorf("failed to delete existing deck cards: %w", err)
+	}
+
+	// If no cards to insert, commit and return
+	if len(cards) == 0 {
+		return tx.Commit()
+	}
+
+	// Prepare batch insert for new cards
+	// First, we need to get internal card IDs from UUIDs
+	cardUUIDs := make([]interface{}, 0, len(cards))
+	cardQuantityMap := make(map[uuid.UUID]int)
+
+	for _, cardWithQuantity := range cards {
+		cardID := cardWithQuantity.Card.GetID()
+		cardUUIDs = append(cardUUIDs, cardID[:])
+		cardQuantityMap[cardID] = cardWithQuantity.Quantity
+	}
+
+	// Build query to get internal card IDs
+	placeholders := strings.Repeat("?,", len(cardUUIDs)-1) + "?"
+	cardQuery := fmt.Sprintf("SELECT id, uuid FROM cards WHERE uuid IN (%s) AND deleted = false", placeholders)
+
+	cardRows, err := tx.QueryContext(ctx, cardQuery, cardUUIDs...)
+	if err != nil {
+		return fmt.Errorf("failed to query card IDs: %w", err)
+	}
+	defer cardRows.Close()
+
+	// Build the insert data
+	var insertValues []interface{}
+	var valuePlaceholders []string
+
+	for cardRows.Next() {
+		var internalCardID int
+		var cardUUIDBytes []byte
+
+		err = cardRows.Scan(&internalCardID, &cardUUIDBytes)
+		if err != nil {
+			return fmt.Errorf("failed to scan card ID: %w", err)
+		}
+
+		cardUUID, err := uuid.FromBytes(cardUUIDBytes)
+		if err != nil {
+			return fmt.Errorf("failed to parse card UUID: %w", err)
+		}
+
+		quantity := cardQuantityMap[cardUUID]
+		insertValues = append(insertValues, internalDeckID, internalCardID, quantity)
+		valuePlaceholders = append(valuePlaceholders, "(?, ?, ?)")
+	}
+
+	if err = cardRows.Err(); err != nil {
+		return fmt.Errorf("error iterating over card rows: %w", err)
+	}
+
+	// Insert the deck cards
+	if len(insertValues) > 0 {
+		insertQuery := fmt.Sprintf("INSERT INTO deck_cards (deck_id, card_id, quantity) VALUES %s",
+			strings.Join(valuePlaceholders, ", "))
+
+		_, err = tx.ExecContext(ctx, insertQuery, insertValues...)
+		if err != nil {
+			return fmt.Errorf("failed to insert deck cards: %w", err)
+		}
+	}
+
+	return tx.Commit()
 }
