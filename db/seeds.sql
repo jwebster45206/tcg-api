@@ -2,8 +2,8 @@
 
 -- Card types lookup data
 INSERT INTO card_types (id, name, description) VALUES
-(1, 'image', 'Image cards for artwork and illustrations'),
-(2, 'playing', 'Traditional playing cards with suit and ranking');
+(1, 'image-card', 'Image cards for artwork and illustrations'),
+(2, 'playing-card', 'Traditional playing cards with suit and ranking');
 
 -- Deck types lookup data
 INSERT INTO deck_types (id, name, description) VALUES

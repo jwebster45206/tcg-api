@@ -41,7 +41,7 @@ var ImageCardQueryConfig = query.QueryConfig{
 }
 
 const (
-	TypeImageCard   = "imagecard"
+	TypeImageCard   = "image-card"
 	TypeImageCardID = 1
 )
 
