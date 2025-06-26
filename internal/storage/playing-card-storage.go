@@ -120,7 +120,9 @@ func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card models.Playin
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback() // Ignore error - rollback is safe to call multiple times
+	}()
 
 	// Insert into cards table first
 	cardQuery := squirrel.Insert("cards").
@@ -195,7 +197,9 @@ func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card models.Playin
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback() // Ignore error - rollback is safe to call multiple times
+	}()
 
 	// Update cards table
 	cardQuery := squirrel.Update("cards").
