@@ -79,27 +79,70 @@ func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 		h.handleError(w, err, http.StatusBadRequest)
 		return
 	}
-
-	// Parse sorts
 	sorts, err := ParseSorts(r, models.DeckQueryConfig)
 	if err != nil {
 		h.handleError(w, err, http.StatusBadRequest)
 		return
 	}
-
-	// Parse pagination
 	pageSize, pageNum, err := ParsePagination(r)
 	if err != nil {
 		h.handleError(w, err, http.StatusBadRequest)
 		return
 	}
-
-	// Get decks from storage
 	decks, err := h.storage.ListDecks(r.Context(), filters, sorts, pageSize, pageNum)
 	if err != nil {
 		h.logger.Error("Failed to list decks", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// Check if cards should be included
+	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
+
+	// Only allow including cards if filtering by ID (to avoid expensive operations on large lists)
+	if includeCards {
+		hasIDFilter := false
+		for _, filter := range filters {
+			if filter.Column == "id" {
+				hasIDFilter = true
+				break
+			}
+		}
+		if !hasIDFilter {
+			http.Error(w, "Including cards is only allowed when filtering by 'id'", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// If cards are requested, fetch and populate them for each deck
+	if includeCards {
+		for _, deck := range decks {
+			cards, err := h.storage.ListDeckCards(r.Context(), deck.ID)
+			if err != nil {
+				h.logger.Error("Failed to get deck cards", "error", err, "deck_id", deck.ID)
+				// Continue with other decks instead of failing completely
+				continue
+			}
+
+			// Build CardCollection
+			totalCount := 0
+			for _, cardWithQuantity := range cards {
+				totalCount += cardWithQuantity.Quantity
+			}
+
+			cardCollection := &models.CardCollection{
+				TotalCount:  totalCount,
+				UniqueCount: len(cards),
+				Items:       make([]models.CardWithQuantity, len(cards)),
+			}
+
+			// Convert from pointers to values for the response
+			for i, cardPtr := range cards {
+				cardCollection.Items[i] = *cardPtr
+			}
+
+			deck.Cards = cardCollection
+		}
 	}
 
 	// Set content type and return JSON
@@ -112,14 +155,12 @@ func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 
 // getDeck handles GET /decks/{id}
 func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr string) {
-	// Parse deck ID
 	deckID, err := uuid.Parse(deckIDStr)
 	if err != nil {
 		http.Error(w, "Invalid deck ID format", http.StatusBadRequest)
 		return
 	}
 
-	// Get deck from storage
 	deck, err := h.storage.GetDeck(r.Context(), deckID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -131,7 +172,34 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 		return
 	}
 
-	// Set content type and return JSON
+	// If cards are requested, fetch and populate them
+	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
+	if includeCards {
+		cards, err := h.storage.ListDeckCards(r.Context(), deckID)
+		if err != nil {
+			h.logger.Error("Failed to get deck cards", "error", err, "deck_id", deckID)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		totalCount := 0
+		for _, cardWithQuantity := range cards {
+			totalCount += cardWithQuantity.Quantity
+		}
+
+		cardCollection := &models.CardCollection{
+			TotalCount:  totalCount,
+			UniqueCount: len(cards),
+			Items:       make([]models.CardWithQuantity, len(cards)),
+		}
+
+		// Convert from pointers to values for the response
+		for i, cardPtr := range cards {
+			cardCollection.Items[i] = *cardPtr
+		}
+		deck.Cards = cardCollection
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(deck); err != nil {
 		h.logger.Error("Failed to encode response", "error", err)
@@ -142,14 +210,11 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 // createDeck handles POST /decks
 func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 	var deck models.Deck
-
-	// Parse request body
 	if err := json.NewDecoder(r.Body).Decode(&deck); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Create deck in storage
 	createdDeck, err := h.storage.CreateDeck(r.Context(), deck)
 	if err != nil {
 		h.logger.Error("Failed to create deck", "error", err)
@@ -157,7 +222,6 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set content type and return created deck
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(createdDeck); err != nil {
@@ -168,25 +232,20 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 
 // updateDeck handles PATCH /decks/{id}
 func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckIDStr string) {
-	// Parse deck ID
 	deckID, err := uuid.Parse(deckIDStr)
 	if err != nil {
 		http.Error(w, "Invalid deck ID format", http.StatusBadRequest)
 		return
 	}
 
-	var deck models.Deck
-
 	// Parse request body
+	var deck models.Deck
 	if err := json.NewDecoder(r.Body).Decode(&deck); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Ensure the ID in the URL matches the deck ID
 	deck.ID = deckID
-
-	// Update deck in storage
 	updatedDeck, err := h.storage.UpdateDeck(r.Context(), deck)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -198,7 +257,6 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 		return
 	}
 
-	// Set content type and return updated deck
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(updatedDeck); err != nil {
 		h.logger.Error("Failed to encode response", "error", err)
@@ -215,7 +273,6 @@ func (h *DecksHandler) deleteDeck(w http.ResponseWriter, r *http.Request, deckID
 		return
 	}
 
-	// Delete deck from storage
 	err = h.storage.DeleteDeck(r.Context(), deckID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -227,7 +284,7 @@ func (h *DecksHandler) deleteDeck(w http.ResponseWriter, r *http.Request, deckID
 		return
 	}
 
-	// Return 204 No Content for successful deletion
+	// successful deletion
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -248,4 +305,14 @@ func (h *DecksHandler) handleError(w http.ResponseWriter, err error, defaultStat
 	}
 
 	http.Error(w, err.Error(), defaultStatus)
+}
+
+// shouldIncludeCards parses the include parameter and returns true if "cards" is requested
+func shouldIncludeCards(includeParam string) bool {
+	for include := range strings.SplitSeq(includeParam, ",") {
+		if strings.TrimSpace(include) == "cards" {
+			return true
+		}
+	}
+	return false
 }

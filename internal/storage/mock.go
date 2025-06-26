@@ -341,3 +341,49 @@ func (m *MockStorage) DeletePlayingCard(ctx context.Context, id uuid.UUID) error
 	delete(m.playingCards, id)
 	return nil
 }
+
+func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Check if the deck exists
+	if _, exists := m.decks[deckID]; !exists {
+		return nil, ErrNotFound
+	}
+
+	// For mock storage, return some sample cards with quantities
+	// In a real implementation, this would query the deck_cards relationship table
+	cards := make([]*models.CardWithQuantity, 0)
+
+	// Add some sample playing cards if any exist in storage
+	count := 0
+	for _, playingCard := range m.playingCards {
+		if count >= 3 { // Limit to 3 cards for mock
+			break
+		}
+		cardCopy := *playingCard
+		cardWithQuantity := &models.CardWithQuantity{
+			Card:     &cardCopy,
+			Quantity: count + 1, // Sample quantities: 1, 2, 3
+		}
+		cards = append(cards, cardWithQuantity)
+		count++
+	}
+
+	// Add some sample image cards if any exist in storage
+	count = 0
+	for _, imageCard := range m.imageCards {
+		if count >= 2 { // Limit to 2 cards for mock
+			break
+		}
+		cardCopy := *imageCard
+		cardWithQuantity := &models.CardWithQuantity{
+			Card:     &cardCopy,
+			Quantity: count + 1, // Sample quantities: 1, 2
+		}
+		cards = append(cards, cardWithQuantity)
+		count++
+	}
+
+	return cards, nil
+}

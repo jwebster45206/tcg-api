@@ -18,6 +18,7 @@ type Storage interface {
 	CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
 	UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
+	ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error)
 
 	// ImageCard operations
 	ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error)
@@ -42,4 +43,22 @@ type Storage interface {
 
 	// TODO: DeckState operations for future gameplay mechanics
 	// CreateDeckState, GetDeckState, UpdateDeckState, DeleteDeckState
+}
+
+// Helper function to safely dereference nullable string pointers
+// Returns empty string if the pointer is nil
+func safeString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// Helper function to safely dereference nullable int pointers
+// Returns 0 if the pointer is nil
+func safeInt(i *int) int {
+	if i == nil {
+		return 0
+	}
+	return *i
 }

@@ -8,7 +8,7 @@ import (
 
 // GameCard represents a TCG-specific card with game mechanics
 type GameCard struct {
-	ID            uuid.UUID
+	ID            uuid.UUID `json:"id"`
 	Name          string    `json:"name"`
 	Subtitle      string    `json:"subtitle"`
 	Cost          int       `json:"cost"`
