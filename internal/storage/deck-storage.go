@@ -107,13 +107,96 @@ func (m *MySQLStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck,
 }
 
 func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
-	return nil, fmt.Errorf("not implemented")
+	if deck.ID == uuid.Nil {
+		deck.ID = uuid.New()
+	}
+
+	deckType := deck.DeckType
+	if deckType == "" {
+		deckType = models.DeckTypeStandard
+	}
+
+	query := squirrel.Insert("decks").
+		Columns(
+			"uuid",
+			"name",
+			"deck_type_id",
+			"sleeve_image_url",
+		).
+		Values(
+			deck.ID[:], // Convert UUID to bytes
+			deck.Name,
+			squirrel.Select("id").From("deck_types").Where(squirrel.Eq{"name": deckType}),
+			deck.SleeveImageURL,
+		).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build insert query: %w", err)
+	}
+
+	_, err = m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert deck: %w", err)
+	}
+
+	return m.GetDeck(ctx, deck.ID)
 }
 
 func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
-	return nil, fmt.Errorf("not implemented")
+	deckType := deck.DeckType
+	if deckType == "" {
+		deckType = models.DeckTypeStandard
+	}
+	deckTypeSubquery := squirrel.Select("id").From("deck_types").Where(squirrel.Eq{"name": deckType})
+
+	query := squirrel.Update("decks").
+		Where(squirrel.Eq{"uuid": deck.ID[:]}).
+		Set("name", deck.Name).
+		Set("sleeve_image_url", deck.SleeveImageURL).
+		Set("deck_type_id", deckTypeSubquery).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build update query: %w", err)
+	}
+	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update deck: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return nil, ErrNotFound
+	}
+	return m.GetDeck(ctx, deck.ID)
 }
 
 func (m *MySQLStorage) DeleteDeck(ctx context.Context, id uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+	query := squirrel.Update("decks").
+		Set("deleted", true).
+		Where(squirrel.Eq{"uuid": id[:]}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build delete query: %w", err)
+	}
+	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to delete deck: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

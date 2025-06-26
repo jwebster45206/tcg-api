@@ -49,11 +49,11 @@ func TestDecksHandler_ListDecks(t *testing.T) {
 
 func TestDecksHandler_CreateDeck(t *testing.T) {
 	deckName := "Test Playing Deck"
-	deckTypeVal := "playing-card"
+	deckType := "playing-card"
 
 	deck := models.Deck{
 		Name:           deckName,
-		DeckType:       &deckTypeVal,
+		DeckType:       deckType,
 		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
 	}
 
@@ -92,8 +92,8 @@ func TestDecksHandler_CreateDeck(t *testing.T) {
 		t.Errorf("Expected deck name %s, got %s", deckName, responseDeck.Name)
 	}
 
-	if responseDeck.DeckType == nil || *responseDeck.DeckType != deckTypeVal {
-		t.Errorf("Expected deck type %s, got %v", deckTypeVal, responseDeck.DeckType)
+	if responseDeck.DeckType != deckType {
+		t.Errorf("Expected deck type %s, got %s", deckType, responseDeck.DeckType)
 	}
 
 	if responseDeck.ID == uuid.Nil {
@@ -109,12 +109,12 @@ func TestDecksHandler_GetDeck(t *testing.T) {
 	// Create a deck first
 	deckID := uuid.New()
 	deckName := "Test Deck"
-	deckTypeVal := "standard"
+	deckType := "standard"
 
 	deck := models.Deck{
 		ID:        deckID,
 		Name:      deckName,
-		DeckType:  &deckTypeVal,
+		DeckType:  deckType,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -204,12 +204,12 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 	// Create a deck first
 	deckID := uuid.New()
 	originalName := "Original Deck"
-	deckTypeVal := "standard"
+	deckType := "standard"
 
 	originalDeck := models.Deck{
 		ID:        deckID,
 		Name:      originalName,
-		DeckType:  &deckTypeVal,
+		DeckType:  deckType,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -223,10 +223,10 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 
 	// Update the deck
 	updatedName := "Updated Deck Name"
-	updatedTypeVal := "tcg"
+	updatedType := "tcg"
 	updateDeck := models.Deck{
 		Name:           updatedName,
-		DeckType:       &updatedTypeVal,
+		DeckType:       updatedType,
 		SleeveImageURL: stringPtr("https://example.com/new-sleeve.jpg"),
 	}
 
@@ -265,8 +265,8 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 		t.Errorf("Expected updated name %s, got %s", updatedName, responseDeck.Name)
 	}
 
-	if responseDeck.DeckType == nil || *responseDeck.DeckType != updatedTypeVal {
-		t.Errorf("Expected updated deck type %s, got %v", updatedTypeVal, responseDeck.DeckType)
+	if responseDeck.DeckType != updatedType {
+		t.Errorf("Expected updated deck type %s, got %s", updatedType, responseDeck.DeckType)
 	}
 }
 
@@ -305,12 +305,12 @@ func TestDecksHandler_DeleteDeck(t *testing.T) {
 	// Create a deck first
 	deckID := uuid.New()
 	deckName := "Deck to Delete"
-	deckTypeVal := "standard"
+	deckType := "standard"
 
 	deck := models.Deck{
 		ID:        deckID,
 		Name:      deckName,
-		DeckType:  &deckTypeVal,
+		DeckType:  deckType,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

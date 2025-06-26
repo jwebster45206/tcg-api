@@ -11,7 +11,7 @@ import (
 type Deck struct {
 	ID             uuid.UUID       `json:"id"`
 	Name           string          `json:"name"`
-	DeckType       *string         `json:"deck_type,omitempty"`
+	DeckType       string          `json:"deck_type"`
 	SleeveImageURL *string         `json:"sleeve_image_url,omitempty"`
 	Cards          []CardInterface `json:"cards,omitempty"` // TODO: Only populated when explicitly requested
 	CreatedAt      time.Time       `json:"created_at"`
@@ -21,8 +21,8 @@ type Deck struct {
 // DeckType constants for different types of decks
 // matches db seeds for card types
 const (
-	DeckTypeStandard     = 1
-	DeckTypePlayingCards = 2
+	DeckTypeStandard    = "standard"
+	DeckTypePlayingCard = "playing-card"
 )
 
 // DeckQueryConfig defines allowed filters and sorts for Deck queries
