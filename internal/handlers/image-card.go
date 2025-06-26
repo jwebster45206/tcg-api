@@ -212,6 +212,16 @@ func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate the card using the model's validation method
+	if err := card.Validate(); err != nil {
+		response := ErrorResponse{
+			Error:   "validation_error",
+			Message: err.Error(),
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
 	ctx := r.Context()
 	createdCard, err := h.storage.CreateImageCard(ctx, card)
 	if err != nil {
@@ -243,8 +253,32 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
-	var card models.ImageCard
-	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
+	ctx := r.Context()
+
+	// Fetch the current card
+	currentCard, err := h.storage.GetImageCard(ctx, id)
+	if err != nil {
+		h.logger.Error("Failed to get current image card for update",
+			slog.String("operation", "get_image_card_for_update"),
+			slog.String("card_id", cardID),
+			slog.Any("error", err))
+		response := ErrorResponse{
+			Error:   "not_found",
+			Message: "Card not found",
+		}
+		writeJSONResponse(w, http.StatusNotFound, response)
+		return
+	}
+
+	// Parse the update request into a temporary struct
+	var updateData struct {
+		Name          *string `json:"name"`
+		Description   *string `json:"description"`
+		FrontImageURL *string `json:"front_image_url"`
+		BackImageURL  *string `json:"back_image_url"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_json",
 			Message: "Invalid JSON in request body",
@@ -253,15 +287,39 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
-	ctx := r.Context()
-	// Set the ID from the URL path
-	card.ID = id
-	updatedCard, err := h.storage.UpdateImageCard(ctx, card)
+	// Apply updates only for fields that were provided
+	updatedCard := *currentCard // Copy the current card
+
+	if updateData.Name != nil {
+		updatedCard.Name = *updateData.Name
+	}
+	if updateData.Description != nil {
+		updatedCard.Description = *updateData.Description
+	}
+	if updateData.FrontImageURL != nil {
+		updatedCard.FrontImageURL = *updateData.FrontImageURL
+	}
+	if updateData.BackImageURL != nil {
+		updatedCard.BackImageURL = *updateData.BackImageURL
+	}
+
+	// Validate the updated card
+	if err := updatedCard.Validate(); err != nil {
+		response := ErrorResponse{
+			Error:   "validation_error",
+			Message: err.Error(),
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	// Save the updated card
+	savedCard, err := h.storage.UpdateImageCard(ctx, updatedCard)
 	if err != nil {
 		h.logger.Error("Failed to update image card",
 			slog.String("operation", "update_image_card"),
 			slog.String("card_id", cardID),
-			slog.String("card_name", card.Name),
+			slog.String("card_name", updatedCard.Name),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",
@@ -271,7 +329,7 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
-	writeJSONResponse(w, http.StatusOK, updatedCard)
+	writeJSONResponse(w, http.StatusOK, savedCard)
 }
 
 // deleteCard handles DELETE /image-cards/{id}
@@ -300,6 +358,5 @@ func (h *ImageCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, c
 		writeJSONResponse(w, http.StatusInternalServerError, response)
 		return
 	}
-
 	w.WriteHeader(http.StatusNoContent)
 }

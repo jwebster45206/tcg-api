@@ -8,9 +8,11 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 ## Core Features
 
 ### Card Management
-- Card creation and management (in-progress)
-- Card attributes for pre-defined types: image-card, playing-card, and game-card (in-progress)
-- Interface-based design for handling cards of different types
+- Card creation, reading, updating, and deletion (CRUD operations) ✅
+- Card attributes for pre-defined types: image-card ✅, playing-card, and game-card
+- Interface-based design for handling cards of different types ✅
+- Input validation and error handling ✅
+- Query filtering, sorting, and pagination ✅
 
 ### Deck Management
 - Deck creation and management (TODO)
@@ -25,9 +27,9 @@ The API uses an interface-driven approach to support multiple card types:
   - `GetID()`, `GetName()`, `GetFrontImageURL()`, `GetBackImageURL()`, `GetCardType()`
 
 ### Card Type Implementations
-- **GameCard**: TCG-specific cards with game mechanics (cost, offense, defense, keywords, colors)
-- **ImageCard**: Simple cards with just imagery and basic info (name, description, images)
-- **PlayingCard**: Standard playing cards (suite, value, images) - *TODO*
+- **ImageCard**: Simple cards with just imagery and basic info (name, description, images) ✅
+- **GameCard**: TCG-specific cards with game mechanics (cost, offense, defense, keywords, colors) - *Partial*
+- **PlayingCard**: Standard playing cards (suite, value, images) - *Partial*
 
 ### Deck Type Implementation (TODO)
 - Array of cards (unsorted) by identifier and type
@@ -37,10 +39,11 @@ The API uses an interface-driven approach to support multiple card types:
 - Deck accepts cards of any type implementing CardInterface
 
 ## API Endpoints
-- `/game-cards` - GameCard resource management (TCG-specific cards)
+- `/image-cards` - ImageCard resource management (CRUD operations) ✅
+- `/game-cards` - GameCard resource management (partial implementation)
 - `/decks` - Deck management (TODO)
-- TODO - ImageCard and PlayingCard handlers
-- TODO - shuffle and draw
+- Playing card endpoints (TODO)
+- Deck operations: shuffle and draw (TODO)
 
 ## Security
 

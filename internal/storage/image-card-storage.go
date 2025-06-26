@@ -108,15 +108,107 @@ func (m *MySQLStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.
 }
 
 func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Generate UUID if not provided
+	if imageCard.ID == uuid.Nil {
+		imageCard.ID = uuid.New()
+	}
+
+	// Build insert query - pass UUID bytes directly
+	query := squirrel.Insert("cards").
+		Columns(
+			"uuid",
+			"name",
+			"description",
+			"front_image_url",
+			"back_image_url",
+			"card_type_id",
+			"deleted",
+		).
+		Values(
+			imageCard.ID[:],
+			imageCard.Name,
+			imageCard.Description,
+			imageCard.FrontImageURL,
+			imageCard.BackImageURL,
+			models.TypeImageCardID,
+			false,
+		).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build insert query: %w", err)
+	}
+
+	_, err = m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert image card: %w", err)
+	}
+
+	// Return the created card by fetching it
+	return m.GetImageCard(ctx, imageCard.ID)
 }
 
 func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
-	return nil, fmt.Errorf("not implemented")
+	// Build update query
+	query := squirrel.Update("cards").
+		Set("name", imageCard.Name).
+		Set("description", imageCard.Description).
+		Set("front_image_url", imageCard.FrontImageURL).
+		Set("back_image_url", imageCard.BackImageURL).
+		Where(squirrel.Eq{"uuid": imageCard.ID[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build update query: %w", err)
+	}
+
+	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update image card: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return nil, ErrNotFound
+	}
+
+	// Return the updated card by fetching it
+	return m.GetImageCard(ctx, imageCard.ID)
 }
 
+// DeleteImageCard soft-deletes an image card
 func (m *MySQLStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+	query := squirrel.Update("cards").
+		Set("deleted", true).
+		Where(squirrel.Eq{"uuid": id[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build delete query: %w", err)
+	}
+	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to delete image card: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // applyImageCardSystemFilters applies mandatory system filters for ImageCard operations
