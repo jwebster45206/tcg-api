@@ -265,7 +265,7 @@ func (m *MockStorage) ListImageCards(ctx context.Context, filters []query.Filter
 	return imageCards, nil
 }
 
-func (m *MockStorage) ListPlayingCards(ctx context.Context) ([]*models.PlayingCard, error) {
+func (m *MockStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.PlayingCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -275,6 +275,9 @@ func (m *MockStorage) ListPlayingCards(ctx context.Context) ([]*models.PlayingCa
 		cardCopy := *playingCard
 		playingCards = append(playingCards, &cardCopy)
 	}
+
+	// TODO: Apply filters, sorts, and pagination like ListImageCards
+	// For now, return all cards (mock implementation)
 	return playingCards, nil
 }
 

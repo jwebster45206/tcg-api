@@ -27,7 +27,7 @@ type Storage interface {
 	DeleteImageCard(ctx context.Context, id uuid.UUID) error
 
 	// PlayingCard operations
-	ListPlayingCards(ctx context.Context) ([]*models.PlayingCard, error)
+	ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.PlayingCard, error)
 	GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error)
 	CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error)
 	UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error)
