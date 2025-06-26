@@ -10,7 +10,6 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
-// PlayingCard operations
 func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.PlayingCard, error) {
 	// Start building the query with joins
 	queryBuilder := squirrel.Select(
@@ -89,7 +88,22 @@ func (m *MySQLStorage) applyPlayingCardSystemFilters(queryBuilder squirrel.Selec
 }
 
 func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error) {
-	return nil, fmt.Errorf("not implemented")
+	filters := []query.Filter{
+		{
+			Column:   "id",
+			Operator: query.OpEqual,
+			Value:    id,
+		},
+	}
+
+	cards, err := m.ListPlayingCards(ctx, filters, []query.SortOption{}, 1, 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get playing card: %w", err)
+	}
+	if len(cards) == 0 {
+		return nil, fmt.Errorf("playing card not found")
+	}
+	return cards[0], nil
 }
 
 func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
