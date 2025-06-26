@@ -28,7 +28,7 @@ func mustParseTime(dateStr string) time.Time {
 }
 
 func TestImageCardsHandler_ListCards(t *testing.T) {
-	req, err := http.NewRequest("GET", "/image-cards", nil)
+	req, err := http.NewRequest("GET", "/v1/image-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestImageCardsHandler_GetCard(t *testing.T) {
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	// Test getting non-existent card
-	req, err := http.NewRequest("GET", "/image-cards/"+cardID.String(), nil)
+	req, err := http.NewRequest("GET", "/v1/image-cards/"+cardID.String(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestImageCardsHandler_GetCard(t *testing.T) {
 	}
 
 	// Test with invalid UUID format
-	req, err = http.NewRequest("GET", "/image-cards/invalid-uuid", nil)
+	req, err = http.NewRequest("GET", "/v1/image-cards/invalid-uuid", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestImageCardsHandler_CreateCard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("POST", "/image-cards", bytes.NewReader(jsonData))
+	req, err := http.NewRequest("POST", "/v1/image-cards", bytes.NewReader(jsonData))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestImageCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
-	req, err := http.NewRequest("POST", "/image-cards", bytes.NewReader([]byte("invalid json")))
+	req, err := http.NewRequest("POST", "/v1/image-cards", bytes.NewReader([]byte("invalid json")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +192,7 @@ func TestImageCardsHandler_UpdateCard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("PUT", "/image-cards/"+createdCard.ID.String(), bytes.NewReader(jsonData))
+	req, err := http.NewRequest("PUT", "/v1/image-cards/"+createdCard.ID.String(), bytes.NewReader(jsonData))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,7 +234,7 @@ func TestImageCardsHandler_DeleteCard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("DELETE", "/image-cards/"+createdCard.ID.String(), nil)
+	req, err := http.NewRequest("DELETE", "/v1/image-cards/"+createdCard.ID.String(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestImageCardsHandler_MethodNotAllowed(t *testing.T) {
 	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
-	req, err := http.NewRequest("PATCH", "/image-cards", nil)
+	req, err := http.NewRequest("PATCH", "/v1/image-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +372,7 @@ func TestParseFilters(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request with query parameters
-			req := httptest.NewRequest("GET", "/image-cards?"+tt.queryParams, nil)
+			req := httptest.NewRequest("GET", "/v1/image-cards?"+tt.queryParams, nil)
 
 			filters, err := ParseFilters(req, models.ImageCardQueryConfig)
 
@@ -526,7 +526,7 @@ func TestParseSorts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request with query parameters
-			req := httptest.NewRequest("GET", "/image-cards?"+tt.queryParams, nil)
+			req := httptest.NewRequest("GET", "/v1/image-cards?"+tt.queryParams, nil)
 
 			sorts, err := ParseSorts(req, models.ImageCardQueryConfig)
 
@@ -639,7 +639,7 @@ func TestParsePagination(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request with query parameters
-			req := httptest.NewRequest("GET", "/image-cards?"+tt.queryParams, nil)
+			req := httptest.NewRequest("GET", "/v1/image-cards?"+tt.queryParams, nil)
 
 			offset, limit, err := ParsePagination(req)
 
