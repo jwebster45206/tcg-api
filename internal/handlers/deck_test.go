@@ -235,7 +235,7 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("/v1/decks/%s", deckID), bytes.NewBuffer(body))
+	req, err := http.NewRequest("PATCH", fmt.Sprintf("/v1/decks/%s", deckID), bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -281,7 +281,7 @@ func TestDecksHandler_UpdateDeck_NotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("PUT", fmt.Sprintf("/v1/decks/%s", nonExistentID), bytes.NewBuffer(body))
+	req, err := http.NewRequest("PATCH", fmt.Sprintf("/v1/decks/%s", nonExistentID), bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -376,9 +376,9 @@ func TestDecksHandler_MethodNotAllowed(t *testing.T) {
 		method string
 		path   string
 	}{
-		{"PATCH", "/v1/decks"},
-		{"POST", "/v1/decks/123"},
 		{"PUT", "/v1/decks"},
+		{"POST", "/v1/decks/123"},
+		{"PATCH", "/v1/decks"},
 		{"DELETE", "/v1/decks"},
 	}
 

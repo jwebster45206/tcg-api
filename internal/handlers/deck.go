@@ -48,9 +48,9 @@ func (h *DecksHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
 
-	case http.MethodPut:
+	case http.MethodPatch:
 		if path != "" && path != "/" {
-			// PUT /decks/{id} - Update specific deck
+			// PATCH /decks/{id} - Update specific deck
 			deckID := strings.Trim(path, "/")
 			h.updateDeck(w, r, deckID)
 		} else {
@@ -166,7 +166,7 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// updateDeck handles PUT /decks/{id}
+// updateDeck handles PATCH /decks/{id}
 func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckIDStr string) {
 	// Parse deck ID
 	deckID, err := uuid.Parse(deckIDStr)
