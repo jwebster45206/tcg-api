@@ -223,11 +223,12 @@ func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card models.Playin
 		return nil, fmt.Errorf("playing card not found")
 	}
 
-	// Update playing_cards table
+	// Update playing_cards table - use subquery format
 	playingCardQuery := squirrel.Update("playing_cards").
 		Set("suit", card.Suit).
 		Set("ranking", card.Ranking).
-		Where(squirrel.Eq{"card_id": squirrel.Select("id").From("cards").Where(squirrel.Eq{"uuid": card.ID[:]})}).
+		Where("card_id = (SELECT id FROM cards WHERE uuid = ? AND card_type_id = ? AND deleted = false)",
+			card.ID[:], models.TypePlayingCardID).
 		PlaceholderFormat(squirrel.Question)
 
 	playingCardSQL, playingCardArgs, err := playingCardQuery.ToSql()
