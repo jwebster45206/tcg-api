@@ -27,8 +27,9 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		PlaceholderFormat(squirrel.Question)
 
 	// Mandatory filters
-	queryBuilder.Where(squirrel.Eq{"c.card_type_id": 2}) // Only playing cards
-	queryBuilder.Where(squirrel.Eq{"c.deleted": false})  // Only non-deleted records
+	queryBuilder = queryBuilder.
+		Where(squirrel.Eq{"c.card_type_id": 2}). // Only playing cards
+		Where(squirrel.Eq{"c.deleted": false})   // Only non-deleted records
 
 	for _, filter := range filters {
 		if validatedQuery, ok := m.applyValidatedFilter(queryBuilder, filter, models.PlayingCardQueryConfig); ok {

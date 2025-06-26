@@ -25,9 +25,10 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 		From("cards").
 		PlaceholderFormat(squirrel.Question)
 
-	// Mandatory filters
-	query.Where(squirrel.Eq{"card_type_id": 1}) // Only image cards
-	query.Where(squirrel.Eq{"deleted": false})  // Only non-deleted records
+	// Apply mandatory system filters
+	query = query.
+		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}). // Filter by card type
+		Where(squirrel.Eq{"deleted": false})                        // Only non-deleted records
 
 	// User filters
 	for _, filter := range filters {
