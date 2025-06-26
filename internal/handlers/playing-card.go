@@ -26,7 +26,7 @@ func NewPlayingCardsHandler(storage storage.Storage, logger *slog.Logger) *Playi
 }
 
 func (h *PlayingCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/playing-cards")
+	path := strings.TrimPrefix(r.URL.Path, "/v1/playing-cards")
 
 	switch r.Method {
 	case http.MethodGet:
