@@ -109,7 +109,7 @@ func TestPlayingCardsHandler_GetCard_InvalidID(t *testing.T) {
 
 func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite:         models.SuiteHearts,
+		Suit:          models.SuitHearts,
 		Ranking:       1, // Ace
 		FrontImageURL: "https://example.com/ace_hearts_front.png",
 		BackImageURL:  "https://example.com/card_back.png",
@@ -141,8 +141,8 @@ func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if createdCard.Suite != cardReq.Suite {
-		t.Errorf("Expected card suite '%s', got '%s'", cardReq.Suite, createdCard.Suite)
+	if createdCard.Suit != cardReq.Suit {
+		t.Errorf("Expected card suit '%s', got '%s'", cardReq.Suit, createdCard.Suit)
 	}
 
 	if createdCard.Ranking != cardReq.Ranking {
@@ -188,7 +188,7 @@ func TestPlayingCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 	// Test with invalid ranking (out of range)
 	cardReq := models.PlayingCard{
-		Suite:         models.SuiteHearts,
+		Suit:          models.SuitHearts,
 		Ranking:       15, // Invalid - should be 1-13
 		FrontImageURL: "https://example.com/front.png",
 		BackImageURL:  "https://example.com/back.png",
@@ -227,7 +227,7 @@ func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 
 func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite:   models.SuiteSpades,
+		Suit:    models.SuitSpades,
 		Ranking: 10,
 	}
 
@@ -244,14 +244,14 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 
 	// Now update it
 	updateReq := models.PlayingCard{
-		Suite:         models.SuiteDiamonds,
+		Suit:          models.SuitDiamonds,
 		Ranking:       5,
 		FrontImageURL: "https://example.com/updated_front.png",
 		BackImageURL:  "https://example.com/updated_back.png",
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,8 +272,8 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if updatedCard.Suite != updateReq.Suite {
-		t.Errorf("Expected updated card suite '%s', got '%s'", updateReq.Suite, updatedCard.Suite)
+	if updatedCard.Suit != updateReq.Suit {
+		t.Errorf("Expected updated card suit '%s', got '%s'", updateReq.Suit, updatedCard.Suit)
 	}
 
 	if updatedCard.Ranking != updateReq.Ranking {
@@ -284,12 +284,12 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
 	updateReq := models.PlayingCard{
-		Suite:   models.SuiteClubs,
+		Suit:    models.SuitClubs,
 		Ranking: 7,
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,9 +304,9 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
+	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
+			status, http.StatusNotFound)
 	}
 
 	var response ErrorResponse
@@ -314,20 +314,38 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if response.Error != "internal_error" {
-		t.Errorf("Expected error 'internal_error', got '%s'", response.Error)
+	if response.Error != "not_found" {
+		t.Errorf("Expected error 'not_found', got '%s'", response.Error)
 	}
 }
 
 func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
-	cardID := uuid.New().String()
+	// First create a valid card
+	cardReq := models.PlayingCard{
+		Suit:    models.SuitHearts,
+		Ranking: 5,
+	}
+
+	mockStorage := storage.NewMockStorage()
+	logger := testLogger()
+
+	// Create the card first
+	ctx := context.Background()
+	cardReq.ID = uuid.New() // Ensure we have a valid ID for the test
+	_, err := mockStorage.CreatePlayingCard(ctx, cardReq)
+	if err != nil {
+		t.Fatalf("Failed to create test card: %v", err)
+	}
+
+	// Now try to update it with invalid data
 	updateReq := models.PlayingCard{
-		Suite:   "invalid_suite", // Invalid suite
+		ID:      cardReq.ID,     // Use the same ID as the created card
+		Suit:    "invalid_suit", // Invalid suit
 		Ranking: 5,
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,8 +354,6 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Create handler with dependencies
-	mockStorage := storage.NewMockStorage()
-	logger := testLogger()
 	handler := NewPlayingCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -359,7 +375,7 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 
 func TestPlayingCardsHandler_DeleteCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite:   models.SuiteHearts,
+		Suit:    models.SuitHearts,
 		Ranking: 12, // Queen
 	}
 
@@ -422,7 +438,7 @@ func TestPlayingCardsHandler_DeleteCard_NotFound(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_UnsupportedMethod(t *testing.T) {
-	req, err := http.NewRequest("PATCH", "/v1/playing-cards", nil)
+	req, err := http.NewRequest("PUT", "/v1/playing-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

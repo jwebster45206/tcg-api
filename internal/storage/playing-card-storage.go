@@ -14,6 +14,8 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 	// Start building the query with joins
 	queryBuilder := squirrel.Select(
 		"c.uuid",
+		"c.name",
+		"c.description",
 		"pc.suit",
 		"pc.ranking",
 		"c.front_image_url",
@@ -24,7 +26,10 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		Join("playing_cards pc ON c.id = pc.card_id").
 		PlaceholderFormat(squirrel.Question)
 
-	queryBuilder = m.applyPlayingCardSystemFilters(queryBuilder)
+	// Mandatory filters
+	queryBuilder = queryBuilder.
+		Where(squirrel.Eq{"c.card_type_id": 2}). // Only playing cards
+		Where(squirrel.Eq{"c.deleted": false})   // Only non-deleted records
 
 	for _, filter := range filters {
 		if validatedQuery, ok := m.applyValidatedFilter(queryBuilder, filter, models.PlayingCardQueryConfig); ok {
@@ -60,7 +65,9 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		playingCard := &models.PlayingCard{}
 		err := rows.Scan(
 			&playingCard.ID,
-			&playingCard.Suite,
+			&playingCard.Name,
+			&playingCard.Description,
+			&playingCard.Suit,
 			&playingCard.Ranking,
 			&playingCard.FrontImageURL,
 			&playingCard.BackImageURL,
@@ -77,14 +84,6 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		return nil, fmt.Errorf("error iterating over rows: %w", err)
 	}
 	return playingCards, nil
-}
-
-// applyPlayingCardSystemFilters applies mandatory system filters for PlayingCard operations
-// These filters ensure data isolation and business rules are always enforced
-func (m *MySQLStorage) applyPlayingCardSystemFilters(queryBuilder squirrel.SelectBuilder) squirrel.SelectBuilder {
-	return queryBuilder.
-		Where(squirrel.Eq{"c.card_type_id": 2}). // Only playing cards
-		Where(squirrel.Eq{"c.deleted": false})   // Only non-deleted records
 }
 
 func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error) {
@@ -107,13 +106,169 @@ func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*model
 }
 
 func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
-	return nil, fmt.Errorf("not implemented")
+	if card.ID == uuid.Nil {
+		card.ID = uuid.New()
+	}
+
+	// Start a transaction for atomic creation
+	tx, err := m.writerDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback() // Ignore error - rollback is safe to call multiple times
+	}()
+
+	// Insert into cards table first
+	cardQuery := squirrel.Insert("cards").
+		Columns(
+			"uuid",
+			"name",
+			"description",
+			"front_image_url",
+			"back_image_url",
+			"card_type_id",
+		).
+		Values(
+			card.ID[:],
+			card.Name,
+			card.Description,
+			card.FrontImageURL,
+			card.BackImageURL,
+			models.TypePlayingCardID,
+		).
+		PlaceholderFormat(squirrel.Question)
+
+	cardSQL, cardArgs, err := cardQuery.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build cards insert query: %w", err)
+	}
+	result, err := tx.ExecContext(ctx, cardSQL, cardArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert into cards table: %w", err)
+	}
+	cardID, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get inserted card ID: %w", err)
+	}
+
+	// Insert into playing_cards lookup table
+	playingCardQuery := squirrel.Insert("playing_cards").
+		Columns(
+			"card_id",
+			"suit",
+			"ranking",
+		).
+		Values(
+			cardID,
+			card.Suit,
+			card.Ranking,
+		).
+		PlaceholderFormat(squirrel.Question)
+
+	playingCardSQL, playingCardArgs, err := playingCardQuery.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build playing_cards insert query: %w", err)
+	}
+	_, err = tx.ExecContext(ctx, playingCardSQL, playingCardArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert into playing_cards table: %w", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return m.GetPlayingCard(ctx, card.ID)
 }
 
 func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
-	return nil, fmt.Errorf("not implemented")
+	if card.ID == uuid.Nil {
+		return nil, fmt.Errorf("card ID cannot be nil")
+	}
+
+	// Start a transaction for atomic update
+	tx, err := m.writerDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback() // Ignore error - rollback is safe to call multiple times
+	}()
+
+	// Update cards table
+	cardQuery := squirrel.Update("cards").
+		Set("name", card.Name).
+		Set("description", card.Description).
+		Set("front_image_url", card.FrontImageURL).
+		Set("back_image_url", card.BackImageURL).
+		Where(squirrel.Eq{"uuid": card.ID[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypePlayingCardID}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	cardSQL, cardArgs, err := cardQuery.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build cards update query: %w", err)
+	}
+	result, err := tx.ExecContext(ctx, cardSQL, cardArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update cards table: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("playing card not found")
+	}
+
+	// Update playing_cards table - use subquery format
+	playingCardQuery := squirrel.Update("playing_cards").
+		Set("suit", card.Suit).
+		Set("ranking", card.Ranking).
+		Where("card_id = (SELECT id FROM cards WHERE uuid = ? AND card_type_id = ? AND deleted = false)",
+			card.ID[:], models.TypePlayingCardID).
+		PlaceholderFormat(squirrel.Question)
+
+	playingCardSQL, playingCardArgs, err := playingCardQuery.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build playing_cards update query: %w", err)
+	}
+	_, err = tx.ExecContext(ctx, playingCardSQL, playingCardArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update playing_cards table: %w", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return m.GetPlayingCard(ctx, card.ID)
 }
 
 func (m *MySQLStorage) DeletePlayingCard(ctx context.Context, id uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+	query := squirrel.Update("cards").
+		Set("deleted", true).
+		Where(squirrel.Eq{"uuid": id[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypePlayingCardID}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build delete query: %w", err)
+	}
+	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to delete playing card: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("playing card not found")
+	}
+	return nil
 }

@@ -29,7 +29,7 @@ The API uses an interface-driven approach to support multiple card types:
 ### Card Type Implementations
 - **ImageCard**: Simple cards with just imagery and basic info (name, description, images) ✅
 - **GameCard**: TCG-specific cards with game mechanics (cost, offense, defense, keywords, colors) - *Partial*
-- **PlayingCard**: Standard playing cards (suite, value, images) - *Partial*
+- **PlayingCard**: Standard playing cards (suit, value, images) - *Partial*
 
 ### Deck Type Implementation (TODO)
 - Array of cards (unsorted) by identifier and type

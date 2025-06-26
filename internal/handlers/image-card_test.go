@@ -192,7 +192,7 @@ func TestImageCardsHandler_UpdateCard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("PUT", "/v1/image-cards/"+createdCard.ID.String(), bytes.NewReader(jsonData))
+	req, err := http.NewRequest("PATCH", "/v1/image-cards/"+createdCard.ID.String(), bytes.NewReader(jsonData))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestImageCardsHandler_MethodNotAllowed(t *testing.T) {
 	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
-	req, err := http.NewRequest("PATCH", "/v1/image-cards", nil)
+	req, err := http.NewRequest("PUT", "/v1/image-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -219,7 +219,7 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/game-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/game-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +252,7 @@ func TestGameCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/game-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/game-cards/"+cardID, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestGameCardsHandler_DeleteCard_NotFound(t *testing.T) {
 }
 
 func TestGameCardsHandler_UnsupportedMethod(t *testing.T) {
-	req, err := http.NewRequest("PATCH", "/v1/game-cards", nil)
+	req, err := http.NewRequest("PUT", "/v1/game-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

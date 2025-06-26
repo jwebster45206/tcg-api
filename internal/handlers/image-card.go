@@ -48,9 +48,9 @@ func (h *ImageCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
 
-	case http.MethodPut:
+	case http.MethodPatch:
 		if path != "" && path != "/" {
-			// PUT /image-cards/{id} - Update card
+			// PATCH /image-cards/{id} - Update card
 			cardID := strings.Trim(path, "/")
 			h.updateCard(w, r, cardID)
 		} else {
@@ -240,7 +240,7 @@ func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	writeJSONResponse(w, http.StatusCreated, createdCard)
 }
 
-// updateCard handles PUT /image-cards/{id}
+// updateCard handles PATCH /image-cards/{id}
 func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)

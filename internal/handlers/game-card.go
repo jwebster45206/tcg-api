@@ -47,7 +47,7 @@ func (h *GameCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
 
-	case http.MethodPut:
+	case http.MethodPatch:
 		if path != "" && path != "/" {
 			// PUT /game-cards/{id} - Update card
 			cardID := strings.Trim(path, "/")
