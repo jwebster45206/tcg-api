@@ -202,7 +202,6 @@ func (m *MySQLStorage) DeleteDeck(ctx context.Context, id uuid.UUID) error {
 }
 
 func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error) {
-	// First, get the deck's internal ID from UUID
 	var internalDeckID int
 	err := m.readerDB.QueryRowContext(ctx, "SELECT id FROM decks WHERE uuid = ?", deckID[:]).Scan(&internalDeckID)
 	if err != nil {
