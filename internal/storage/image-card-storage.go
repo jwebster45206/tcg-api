@@ -125,12 +125,12 @@ func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.Ima
 			"deleted",
 		).
 		Values(
-			imageCard.ID[:], // Convert UUID to []byte
+			imageCard.ID[:],
 			imageCard.Name,
 			imageCard.Description,
 			imageCard.FrontImageURL,
 			imageCard.BackImageURL,
-			1, // card_type_id for image cards
+			models.TypeImageCardID,
 			false,
 		).
 		PlaceholderFormat(squirrel.Question)
@@ -156,10 +156,9 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 		Set("description", imageCard.Description).
 		Set("front_image_url", imageCard.FrontImageURL).
 		Set("back_image_url", imageCard.BackImageURL).
-		Set("updated_at", squirrel.Expr("NOW()")).
-		Where(squirrel.Eq{"uuid": imageCard.ID[:]}). // Convert UUID to []byte
-		Where(squirrel.Eq{"card_type_id": 1}).       // Only image cards
-		Where(squirrel.Eq{"deleted": false}).        // Only non-deleted records
+		Where(squirrel.Eq{"uuid": imageCard.ID[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"deleted": false}).
 		PlaceholderFormat(squirrel.Question)
 
 	sql, args, err := query.ToSql()
@@ -185,8 +184,31 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 	return m.GetImageCard(ctx, imageCard.ID)
 }
 
+// DeleteImageCard soft-deletes an image card
 func (m *MySQLStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
-	return fmt.Errorf("not implemented")
+	query := squirrel.Update("cards").
+		Set("deleted", true).
+		Where(squirrel.Eq{"uuid": id[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build delete query: %w", err)
+	}
+	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("failed to delete image card: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // applyImageCardSystemFilters applies mandatory system filters for ImageCard operations

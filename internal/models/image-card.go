@@ -40,7 +40,10 @@ var ImageCardQueryConfig = query.QueryConfig{
 	},
 }
 
-const TypeImageCard = "imagecard"
+const (
+	TypeImageCard   = "imagecard"
+	TypeImageCardID = 1
+)
 
 func (c *ImageCard) GetID() uuid.UUID         { return c.ID }
 func (c *ImageCard) GetName() string          { return c.Name }
