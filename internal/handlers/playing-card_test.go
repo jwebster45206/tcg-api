@@ -14,7 +14,7 @@ import (
 )
 
 func TestPlayingCardsHandler_ListCards(t *testing.T) {
-	req, err := http.NewRequest("GET", "/playing-cards", nil)
+	req, err := http.NewRequest("GET", "/v1/playing-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestPlayingCardsHandler_ListCards(t *testing.T) {
 func TestPlayingCardsHandler_GetCard(t *testing.T) {
 	// Test with valid UUID
 	cardID := uuid.New().String()
-	req, err := http.NewRequest("GET", "/playing-cards/"+cardID, nil)
+	req, err := http.NewRequest("GET", "/v1/playing-cards/"+cardID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestPlayingCardsHandler_GetCard(t *testing.T) {
 
 func TestPlayingCardsHandler_GetCard_InvalidID(t *testing.T) {
 	// Test with invalid UUID
-	req, err := http.NewRequest("GET", "/playing-cards/invalid-id", nil)
+	req, err := http.NewRequest("GET", "/v1/playing-cards/invalid-id", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(cardReq)
-	req, err := http.NewRequest("POST", "/playing-cards", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", "/v1/playing-cards", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
-	req, err := http.NewRequest("POST", "/playing-cards", bytes.NewBuffer([]byte("invalid json")))
+	req, err := http.NewRequest("POST", "/v1/playing-cards", bytes.NewBuffer([]byte("invalid json")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +195,7 @@ func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(cardReq)
-	req, err := http.NewRequest("POST", "/playing-cards", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", "/v1/playing-cards", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,7 +289,7 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +327,7 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,7 +374,7 @@ func TestPlayingCardsHandler_DeleteCard(t *testing.T) {
 		t.Fatalf("Failed to create test card: %v", err)
 	}
 
-	req, err := http.NewRequest("DELETE", "/playing-cards/"+cardReq.ID.String(), nil)
+	req, err := http.NewRequest("DELETE", "/v1/playing-cards/"+cardReq.ID.String(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -392,7 +392,7 @@ func TestPlayingCardsHandler_DeleteCard(t *testing.T) {
 
 func TestPlayingCardsHandler_DeleteCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
-	req, err := http.NewRequest("DELETE", "/playing-cards/"+cardID, nil)
+	req, err := http.NewRequest("DELETE", "/v1/playing-cards/"+cardID, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,7 +422,7 @@ func TestPlayingCardsHandler_DeleteCard_NotFound(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_UnsupportedMethod(t *testing.T) {
-	req, err := http.NewRequest("PATCH", "/playing-cards", nil)
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

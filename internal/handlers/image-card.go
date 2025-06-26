@@ -27,7 +27,7 @@ func NewImageCardsHandler(storage storage.Storage, logger *slog.Logger) *ImageCa
 }
 
 func (h *ImageCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/image-cards")
+	path := strings.TrimPrefix(r.URL.Path, "/v1/image-cards")
 
 	switch r.Method {
 	case http.MethodGet:
