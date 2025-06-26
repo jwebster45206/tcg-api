@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 // PlayingCard represents a standard playing card
@@ -18,8 +19,33 @@ type PlayingCard struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+// PlayingCardQueryConfig defines allowed filters and sorts for PlayingCard queries
+var PlayingCardQueryConfig = query.QueryConfig{
+	AllowedFilters: map[string]string{
+		"id":         "c.uuid",
+		"suite":      "pc.suit",
+		"ranking":    "pc.ranking",
+		"created_at": "c.created_at",
+		"updated_at": "c.updated_at",
+	},
+	AllowedSorts: map[string]string{
+		"suite":      "pc.suit",
+		"ranking":    "pc.ranking",
+		"created_at": "c.created_at",
+		"updated_at": "c.updated_at",
+	},
+	FieldTypes: map[string]query.FieldType{
+		"id":         query.FieldTypeUUID,
+		"suite":      query.FieldTypeString,
+		"ranking":    query.FieldTypeInt,
+		"created_at": query.FieldTypeDateTime,
+		"updated_at": query.FieldTypeDateTime,
+	},
+}
+
 const (
-	TypePlayingCard = "playing-card"
+	TypePlayingCard   = "playing-card"
+	TypePlayingCardID = 2
 
 	SuiteHearts   = "hearts"
 	SuiteDiamonds = "diamonds"
