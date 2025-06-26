@@ -122,7 +122,7 @@ func (m *MockStorage) DeleteGameCard(ctx context.Context, id uuid.UUID) error {
 
 // Deck operations
 
-func (m *MockStorage) ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*models.Deck, error) {
+func (m *MockStorage) ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.Deck, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -131,6 +131,11 @@ func (m *MockStorage) ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*mod
 		deckCopy := *deck
 		decks = append(decks, &deckCopy)
 	}
+
+	// Note: Mock implementation doesn't actually apply filters/sorts/pagination
+	// In a real test scenario, you would implement proper filtering logic
+	// For now, just return all decks (useful for basic testing)
+
 	return decks, nil
 }
 

@@ -13,7 +13,7 @@ type Storage interface {
 	Ping(ctx context.Context) error
 
 	// Deck operations
-	ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*models.Deck, error)
+	ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.Deck, error)
 	GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error)
 	CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
 	UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
