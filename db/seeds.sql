@@ -5,6 +5,11 @@ INSERT INTO card_types (id, name, description) VALUES
 (1, 'image', 'Image cards for artwork and illustrations'),
 (2, 'playing', 'Traditional playing cards with suit and ranking');
 
+-- Deck types lookup data
+INSERT INTO deck_types (id, name, description) VALUES
+(1, 'standard', 'Standard mixed deck for general use'),
+(2, 'playing-card', 'Traditional playing card deck (52 cards)');
+
 -- Sample image cards (stored entirely in cards table)
 INSERT INTO cards (id, uuid, name, description, card_type_id, front_image_url, back_image_url, alt_text) VALUES
 (1, UNHEX(REPLACE('550e8400-e29b-41d4-a716-446655440001', '-', '')), 'Dragon Artwork', 'Beautiful dragon illustration card', 1, 'https://example.com/images/dragon-front.jpg', 'https://example.com/images/card-back.jpg', 'Red dragon breathing fire'),

@@ -128,11 +128,8 @@ func (m *MockStorage) ListDecks(ctx context.Context, ownerID *uuid.UUID) ([]*mod
 
 	decks := make([]*models.Deck, 0, len(m.decks))
 	for _, deck := range m.decks {
-		if ownerID == nil || (deck.OwnerID != nil && *deck.OwnerID == *ownerID) {
-			// Create a copy to avoid modifying the original
-			deckCopy := *deck
-			decks = append(decks, &deckCopy)
-		}
+		deckCopy := *deck
+		decks = append(decks, &deckCopy)
 	}
 	return decks, nil
 }
