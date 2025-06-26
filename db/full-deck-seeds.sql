@@ -1,4 +1,4 @@
--- Full 52-card deck plus jokers seed data
+-- Full 54-card deck plus jokers seed data
 
 -- Insert all 52 playing cards + 2 jokers
 INSERT INTO cards (id, uuid, name, description, card_type_id, front_image_url, back_image_url, alt_text) VALUES
@@ -127,3 +127,20 @@ INSERT INTO playing_cards (card_id, suit, ranking) VALUES
 (53, 'clubs', 11), 
 (54, 'clubs', 12), 
 (55, 'clubs', 13);
+
+-- Create a standard 54-card deck (52 cards + 2 jokers)
+INSERT INTO decks (id, uuid, name, deck_type_id, sleeve_image_url) VALUES
+(1, UNHEX(REPLACE('d0000000-0000-0000-0000-000000000001', '-', '')), 'Standard Playing Card Deck', 2, 'https://example.com/cards/playing-back.jpg');
+
+-- Populate the deck with all 52 playing cards
+INSERT INTO deck_cards (deck_id, card_id, card_type_id, quantity) VALUES
+-- Spades (IDs 4-16)
+(1, 4, 2, 1), (1, 5, 2, 1), (1, 6, 2, 1), (1, 7, 2, 1), (1, 8, 2, 1), (1, 9, 2, 1), (1, 10, 2, 1), (1, 11, 2, 1), (1, 12, 2, 1), (1, 13, 2, 1), (1, 14, 2, 1), (1, 15, 2, 1), (1, 16, 2, 1),
+-- Hearts (IDs 17-29)
+(1, 17, 2, 1), (1, 18, 2, 1), (1, 19, 2, 1), (1, 20, 2, 1), (1, 21, 2, 1), (1, 22, 2, 1), (1, 23, 2, 1), (1, 24, 2, 1), (1, 25, 2, 1), (1, 26, 2, 1), (1, 27, 2, 1), (1, 28, 2, 1), (1, 29, 2, 1),
+-- Diamonds (IDs 30-42)
+(1, 30, 2, 1), (1, 31, 2, 1), (1, 32, 2, 1), (1, 33, 2, 1), (1, 34, 2, 1), (1, 35, 2, 1), (1, 36, 2, 1), (1, 37, 2, 1), (1, 38, 2, 1), (1, 39, 2, 1), (1, 40, 2, 1), (1, 41, 2, 1), (1, 42, 2, 1),
+-- Clubs (IDs 43-55)
+(1, 43, 2, 1), (1, 44, 2, 1), (1, 45, 2, 1), (1, 46, 2, 1), (1, 47, 2, 1), (1, 48, 2, 1), (1, 49, 2, 1), (1, 50, 2, 1), (1, 51, 2, 1), (1, 52, 2, 1), (1, 53, 2, 1), (1, 54, 2, 1), (1, 55, 2, 1),
+-- Jokers (IDs 56-57, stored as image cards - card_type_id = 1)
+(1, 56, 1, 1), (1, 57, 1, 1);
