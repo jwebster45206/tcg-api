@@ -11,10 +11,9 @@ import (
 type Deck struct {
 	ID             uuid.UUID       `json:"id"`
 	Name           string          `json:"name"`
-	DeckTypeID     int             `json:"deck_type_id"`
-	DeckTypeName   *string         `json:"deck_type_name,omitempty"` // Populated via JOIN when requested
+	DeckType       *string         `json:"deck_type,omitempty"`
 	SleeveImageURL *string         `json:"sleeve_image_url,omitempty"`
-	Cards          []CardInterface `json:"cards,omitempty"` // Only populated when explicitly requested
+	Cards          []CardInterface `json:"cards,omitempty"` // TODO: Only populated when explicitly requested
 	CreatedAt      time.Time       `json:"created_at"`
 	UpdatedAt      time.Time       `json:"updated_at"`
 }

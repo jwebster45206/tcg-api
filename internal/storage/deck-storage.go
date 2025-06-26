@@ -16,8 +16,7 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 	query := squirrel.Select(
 		"d.uuid",
 		"d.name",
-		"d.deck_type_id",
-		"dt.name as deck_type_name",
+		"dt.name as deck_type",
 		"d.sleeve_image_url",
 		"d.created_at",
 		"d.updated_at").
@@ -67,12 +66,10 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 	var decks []*models.Deck
 	for rows.Next() {
 		deck := &models.Deck{}
-		var deckTypeName *string
 		err := rows.Scan(
 			&deck.ID,
 			&deck.Name,
-			&deck.DeckTypeID,
-			&deckTypeName,
+			&deck.DeckType,
 			&deck.SleeveImageURL,
 			&deck.CreatedAt,
 			&deck.UpdatedAt,
@@ -80,7 +77,6 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan deck: %w", err)
 		}
-		deck.DeckTypeName = deckTypeName
 		// Cards are not loaded in list operation - they can be requested separately
 		decks = append(decks, deck)
 	}
@@ -92,7 +88,22 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 }
 
 func (m *MySQLStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error) {
-	return nil, fmt.Errorf("not implemented")
+	filters := []query.Filter{
+		{
+			Column:   "id",
+			Operator: query.OpEqual,
+			Value:    id,
+		},
+	}
+
+	decks, err := m.ListDecks(ctx, filters, []query.SortOption{}, 1, 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deck: %w", err)
+	}
+	if len(decks) == 0 {
+		return nil, ErrNotFound
+	}
+	return decks[0], nil
 }
 
 func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
