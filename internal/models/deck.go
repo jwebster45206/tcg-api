@@ -7,17 +7,6 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
-// Deck represents the base deck structure shared across all games
-type Deck struct {
-	ID             uuid.UUID       `json:"id"`
-	Name           string          `json:"name"`
-	DeckType       string          `json:"deck_type"`
-	SleeveImageURL *string         `json:"sleeve_image_url,omitempty"`
-	Cards          []CardInterface `json:"cards,omitempty"` // TODO: Only populated when explicitly requested
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
-}
-
 // DeckType constants for different types of decks
 // matches db seeds for card types
 const (
@@ -48,3 +37,40 @@ var DeckQueryConfig = query.QueryConfig{
 		"updated_at": query.FieldTypeDateTime,
 	},
 }
+
+// Deck represents the base deck structure shared across all games
+type Deck struct {
+	ID             uuid.UUID       `json:"id"`
+	Name           string          `json:"name"`
+	DeckType       string          `json:"deck_type"`
+	SleeveImageURL *string         `json:"sleeve_image_url,omitempty"`
+	Cards          *CardCollection `json:"cards,omitempty"` // Only when ?include=cards
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+}
+
+// CardCollection is a representation of cards in a deck
+// with de-duplication and quantity tracking.
+type CardCollection struct {
+	TotalCount  int                `json:"total_count"`  // Sum of all quantities (54 for standard deck)
+	UniqueCount int                `json:"unique_count"` // Number of different cards (54 for standard deck)
+	Items       []CardWithQuantity `json:"items"`
+}
+
+type CardWithQuantity struct {
+	Card     CardInterface `json:"card"`
+	Quantity int           `json:"quantity"`
+}
+
+// OrderedCardCollection is a representation of cards in a deck
+// with their positions for ordered decks (like playing cards).
+// Duplication is allowed.
+// type OrderedCardCollection struct {
+// 	TotalCount int              `json:"total_count"`
+// 	Items      []PositionedCard `json:"items"`
+// }
+
+// type PositionedCard struct {
+// 	Card     CardInterface `json:"card"`
+// 	Position int           `json:"position"`
+// }

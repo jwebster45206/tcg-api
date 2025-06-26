@@ -200,3 +200,123 @@ func (m *MySQLStorage) DeleteDeck(ctx context.Context, id uuid.UUID) error {
 	}
 	return nil
 }
+
+func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error) {
+	// First, get the deck's internal ID from UUID
+	var internalDeckID int
+	err := m.readerDB.QueryRowContext(ctx, "SELECT id FROM decks WHERE uuid = ?", deckID[:]).Scan(&internalDeckID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find deck: %w", err)
+	}
+
+	query := squirrel.Select(
+		"c.uuid",
+		"c.name",
+		"c.description",
+		"c.card_type_id",
+		"ct.name as card_type",
+		"c.front_image_url",
+		"c.back_image_url",
+		"pc.suit",
+		"pc.ranking",
+		"dc.quantity").
+		From("deck_cards dc").
+		Join("cards c ON dc.card_id = c.id").
+		Join("card_types ct ON c.card_type_id = ct.id").
+		LeftJoin("playing_cards pc ON c.card_type_id = 2 AND pc.card_id = c.id").
+		Where(squirrel.Eq{"dc.deck_id": internalDeckID}).
+		PlaceholderFormat(squirrel.Question)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %w", err)
+	}
+
+	rows, err := m.readerDB.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	var cards []*models.CardWithQuantity
+	for rows.Next() {
+		// Basic fields that every card type has
+		var cardUUIDBytes []byte
+		var name, cardType string
+		var description, frontImageURL, backImageURL *string
+		var cardTypeID int
+		var quantity int
+
+		// Playing card fields (left-joined, so may be nil)
+		var suit *string
+		var ranking *int
+
+		err = rows.Scan(
+			&cardUUIDBytes,
+			&name,
+			&description,
+			&cardTypeID,
+			&cardType,
+			&frontImageURL,
+			&backImageURL,
+			&suit,
+			&ranking,
+			&quantity,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan card: %w", err)
+		}
+
+		cardUUID, err := uuid.FromBytes(cardUUIDBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse UUID: %w", err)
+		}
+
+		var cardInterface models.CardInterface
+		switch cardType {
+		case models.TypePlayingCard:
+			if suit == nil || ranking == nil {
+				return nil, fmt.Errorf("playing card missing required fields")
+			}
+			cardInterface = &models.PlayingCard{
+				ID:            cardUUID,
+				Name:          name,
+				Description:   safeString(description),
+				FrontImageURL: safeString(frontImageURL),
+				BackImageURL:  safeString(backImageURL),
+				Suit:          safeString(suit),
+				Ranking:       safeInt(ranking),
+			}
+		case models.TypeImageCard:
+			cardInterface = &models.ImageCard{
+				ID:            cardUUID,
+				Name:          name,
+				Description:   safeString(description),
+				FrontImageURL: safeString(frontImageURL),
+				BackImageURL:  safeString(backImageURL),
+			}
+		case models.TypeGameCard:
+			// For game cards, we'd need to fetch additional fields from game_cards table
+			// For now, create a basic game card (this would need expansion when game_cards table is added)
+			cardInterface = &models.GameCard{
+				ID:            cardUUID,
+				Name:          name,
+				FrontImageURL: safeString(frontImageURL),
+				BackImageURL:  safeString(backImageURL),
+			}
+		default:
+			return nil, fmt.Errorf("unknown card type: %s", cardType)
+		}
+
+		cardWithQuantity := &models.CardWithQuantity{
+			Card:     cardInterface,
+			Quantity: quantity,
+		}
+		cards = append(cards, cardWithQuantity)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating over rows: %w", err)
+	}
+	return cards, nil
+}

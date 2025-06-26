@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -62,20 +63,42 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 
 	var playingCards []*models.PlayingCard
 	for rows.Next() {
-		playingCard := &models.PlayingCard{}
+		var uuidBytes []byte
+		var name, suit string
+		var ranking int
+		var description, frontImageURL, backImageURL *string
+		var createdAt, updatedAt time.Time
+
 		err := rows.Scan(
-			&playingCard.ID,
-			&playingCard.Name,
-			&playingCard.Description,
-			&playingCard.Suit,
-			&playingCard.Ranking,
-			&playingCard.FrontImageURL,
-			&playingCard.BackImageURL,
-			&playingCard.CreatedAt,
-			&playingCard.UpdatedAt,
+			&uuidBytes,
+			&name,
+			&description,
+			&suit,
+			&ranking,
+			&frontImageURL,
+			&backImageURL,
+			&createdAt,
+			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan playing card: %w", err)
+		}
+
+		cardUUID, err := uuid.FromBytes(uuidBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse UUID: %w", err)
+		}
+
+		playingCard := &models.PlayingCard{
+			ID:            cardUUID,
+			Name:          name,
+			Description:   safeString(description),
+			Suit:          suit,
+			Ranking:       ranking,
+			FrontImageURL: safeString(frontImageURL),
+			BackImageURL:  safeString(backImageURL),
+			CreatedAt:     createdAt,
+			UpdatedAt:     updatedAt,
 		}
 		playingCards = append(playingCards, playingCard)
 	}

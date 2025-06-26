@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
@@ -67,18 +68,37 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 
 	var imageCards []*models.ImageCard
 	for rows.Next() {
-		imageCard := &models.ImageCard{}
+		var uuidBytes []byte
+		var name string
+		var description, frontImageURL, backImageURL *string
+		var createdAt, updatedAt time.Time
+
 		err := rows.Scan(
-			&imageCard.ID,
-			&imageCard.Name,
-			&imageCard.Description,
-			&imageCard.FrontImageURL,
-			&imageCard.BackImageURL,
-			&imageCard.CreatedAt,
-			&imageCard.UpdatedAt,
+			&uuidBytes,
+			&name,
+			&description,
+			&frontImageURL,
+			&backImageURL,
+			&createdAt,
+			&updatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image card: %w", err)
+		}
+
+		cardUUID, err := uuid.FromBytes(uuidBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse UUID: %w", err)
+		}
+
+		imageCard := &models.ImageCard{
+			ID:            cardUUID,
+			Name:          name,
+			Description:   safeString(description),
+			FrontImageURL: safeString(frontImageURL),
+			BackImageURL:  safeString(backImageURL),
+			CreatedAt:     createdAt,
+			UpdatedAt:     updatedAt,
 		}
 		imageCards = append(imageCards, imageCard)
 	}
