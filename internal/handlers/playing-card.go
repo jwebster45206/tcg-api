@@ -48,9 +48,9 @@ func (h *PlayingCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
 
-	case http.MethodPut:
+	case http.MethodPatch:
 		if path != "" && path != "/" {
-			// PUT /playing-cards/{id} - Update card
+			// PATCH /playing-cards/{id} - Update card
 			cardID := strings.Trim(path, "/")
 			h.updateCard(w, r, cardID)
 		} else {
@@ -238,7 +238,7 @@ func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request)
 	writeJSONResponse(w, http.StatusCreated, createdCard)
 }
 
-// updateCard handles PUT /playing-cards/{id}
+// updateCard handles PUT/PATCH /playing-cards/{id}
 func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, cardID string) {
 	// Validate UUID format
 	id, err := uuid.Parse(cardID)
@@ -251,8 +251,32 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	var card models.PlayingCard
-	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
+	ctx := r.Context()
+
+	// Get the existing card first
+	existingCard, err := h.storage.GetPlayingCard(ctx, id)
+	if err != nil {
+		h.logger.Error("Failed to get existing playing card for update",
+			slog.String("operation", "get_playing_card_for_update"),
+			slog.String("card_id", cardID),
+			slog.Any("error", err))
+		response := ErrorResponse{
+			Error:   "not_found",
+			Message: "Playing card not found",
+		}
+		writeJSONResponse(w, http.StatusNotFound, response)
+		return
+	}
+
+	// For PATCH, decode partial updates onto existing card
+	// For PUT, decode complete replacement
+	var updateCard models.PlayingCard
+	if r.Method == http.MethodPatch {
+		// Start with existing card data
+		updateCard = *existingCard
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&updateCard); err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_json",
 			Message: "Invalid JSON in request body",
@@ -261,8 +285,11 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Validate the playing card
-	if err := card.Validate(); err != nil {
+	// Set the ID from the URL path (ensure it doesn't get overridden)
+	updateCard.ID = id
+
+	// Validate the updated card
+	if err := updateCard.Validate(); err != nil {
 		response := ErrorResponse{
 			Error:   "invalid_card",
 			Message: err.Error(),
@@ -271,16 +298,13 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	ctx := r.Context()
-	// Set the ID from the URL path
-	card.ID = id
-	updatedCard, err := h.storage.UpdatePlayingCard(ctx, card)
+	updatedCard, err := h.storage.UpdatePlayingCard(ctx, updateCard)
 	if err != nil {
 		h.logger.Error("Failed to update playing card",
 			slog.String("operation", "update_playing_card"),
 			slog.String("card_id", cardID),
-			slog.String("suit", card.Suit),
-			slog.Int("ranking", card.Ranking),
+			slog.String("suit", updateCard.Suit),
+			slog.Int("ranking", updateCard.Ranking),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   "internal_error",

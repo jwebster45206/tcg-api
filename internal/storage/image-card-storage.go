@@ -151,6 +151,39 @@ func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.Ima
 }
 
 func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
+	// Start a transaction for data consistency
+	tx, err := m.writerDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			// Log rollback errors but don't override the original error
+			m.logger.Error("Failed to rollback transaction",
+				"operation", "update_image_card",
+				"error", rollbackErr)
+		}
+	}()
+
+	// Check if the card exists and is not deleted
+	var exists bool
+	checkQuery := squirrel.Select("1").
+		From("cards").
+		Where(squirrel.Eq{"uuid": imageCard.ID[:]}).
+		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"deleted": false}).
+		PlaceholderFormat(squirrel.Question)
+
+	checkSQL, checkArgs, err := checkQuery.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build check query: %w", err)
+	}
+
+	err = tx.QueryRowContext(ctx, checkSQL, checkArgs...).Scan(&exists)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+
 	// Build update query
 	query := squirrel.Update("cards").
 		Set("name", imageCard.Name).
@@ -167,7 +200,7 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 		return nil, fmt.Errorf("failed to build update query: %w", err)
 	}
 
-	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	result, err := tx.ExecContext(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update image card: %w", err)
 	}
@@ -179,6 +212,11 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 
 	if rowsAffected == 0 {
 		return nil, ErrNotFound
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Return the updated card by fetching it

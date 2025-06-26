@@ -251,7 +251,7 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,7 +289,7 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,9 +304,9 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusInternalServerError {
+	if status := rr.Code; status != http.StatusNotFound {
 		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusInternalServerError)
+			status, http.StatusNotFound)
 	}
 
 	var response ErrorResponse
@@ -314,20 +314,38 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if response.Error != "internal_error" {
-		t.Errorf("Expected error 'internal_error', got '%s'", response.Error)
+	if response.Error != "not_found" {
+		t.Errorf("Expected error 'not_found', got '%s'", response.Error)
 	}
 }
 
 func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
-	cardID := uuid.New().String()
+	// First create a valid card
+	cardReq := models.PlayingCard{
+		Suit:    models.SuitHearts,
+		Ranking: 5,
+	}
+
+	mockStorage := storage.NewMockStorage()
+	logger := testLogger()
+
+	// Create the card first
+	ctx := context.Background()
+	cardReq.ID = uuid.New() // Ensure we have a valid ID for the test
+	_, err := mockStorage.CreatePlayingCard(ctx, cardReq)
+	if err != nil {
+		t.Fatalf("Failed to create test card: %v", err)
+	}
+
+	// Now try to update it with invalid data
 	updateReq := models.PlayingCard{
+		ID:      cardReq.ID,     // Use the same ID as the created card
 		Suit:    "invalid_suit", // Invalid suit
 		Ranking: 5,
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
-	req, err := http.NewRequest("PUT", "/v1/playing-cards/"+cardID, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("PATCH", "/v1/playing-cards/"+cardReq.ID.String(), bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,8 +354,6 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Create handler with dependencies
-	mockStorage := storage.NewMockStorage()
-	logger := testLogger()
 	handler := NewPlayingCardsHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
@@ -422,7 +438,7 @@ func TestPlayingCardsHandler_DeleteCard_NotFound(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_UnsupportedMethod(t *testing.T) {
-	req, err := http.NewRequest("PATCH", "/v1/playing-cards", nil)
+	req, err := http.NewRequest("PUT", "/v1/playing-cards", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
