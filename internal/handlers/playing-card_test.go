@@ -109,7 +109,7 @@ func TestPlayingCardsHandler_GetCard_InvalidID(t *testing.T) {
 
 func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite:         models.SuiteHearts,
+		Suit:          models.SuitHearts,
 		Ranking:       1, // Ace
 		FrontImageURL: "https://example.com/ace_hearts_front.png",
 		BackImageURL:  "https://example.com/card_back.png",
@@ -141,8 +141,8 @@ func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if createdCard.Suite != cardReq.Suite {
-		t.Errorf("Expected card suite '%s', got '%s'", cardReq.Suite, createdCard.Suite)
+	if createdCard.Suit != cardReq.Suit {
+		t.Errorf("Expected card suit '%s', got '%s'", cardReq.Suit, createdCard.Suit)
 	}
 
 	if createdCard.Ranking != cardReq.Ranking {
@@ -188,7 +188,7 @@ func TestPlayingCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 	// Test with invalid ranking (out of range)
 	cardReq := models.PlayingCard{
-		Suite:         models.SuiteHearts,
+		Suit:          models.SuitHearts,
 		Ranking:       15, // Invalid - should be 1-13
 		FrontImageURL: "https://example.com/front.png",
 		BackImageURL:  "https://example.com/back.png",
@@ -227,7 +227,7 @@ func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 
 func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite:   models.SuiteSpades,
+		Suit:    models.SuitSpades,
 		Ranking: 10,
 	}
 
@@ -244,7 +244,7 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 
 	// Now update it
 	updateReq := models.PlayingCard{
-		Suite:         models.SuiteDiamonds,
+		Suit:          models.SuitDiamonds,
 		Ranking:       5,
 		FrontImageURL: "https://example.com/updated_front.png",
 		BackImageURL:  "https://example.com/updated_back.png",
@@ -272,8 +272,8 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if updatedCard.Suite != updateReq.Suite {
-		t.Errorf("Expected updated card suite '%s', got '%s'", updateReq.Suite, updatedCard.Suite)
+	if updatedCard.Suit != updateReq.Suit {
+		t.Errorf("Expected updated card suit '%s', got '%s'", updateReq.Suit, updatedCard.Suit)
 	}
 
 	if updatedCard.Ranking != updateReq.Ranking {
@@ -284,7 +284,7 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
 	updateReq := models.PlayingCard{
-		Suite:   models.SuiteClubs,
+		Suit:    models.SuitClubs,
 		Ranking: 7,
 	}
 
@@ -322,7 +322,7 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	cardID := uuid.New().String()
 	updateReq := models.PlayingCard{
-		Suite:   "invalid_suite", // Invalid suite
+		Suit:    "invalid_suit", // Invalid suit
 		Ranking: 5,
 	}
 
@@ -359,7 +359,7 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 
 func TestPlayingCardsHandler_DeleteCard(t *testing.T) {
 	cardReq := models.PlayingCard{
-		Suite:   models.SuiteHearts,
+		Suit:    models.SuitHearts,
 		Ranking: 12, // Queen
 	}
 

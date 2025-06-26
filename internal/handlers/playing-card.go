@@ -224,7 +224,7 @@ func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		h.logger.Error("Failed to create playing card",
 			slog.String("operation", "create_playing_card"),
-			slog.String("suite", card.Suite),
+			slog.String("suit", card.Suit),
 			slog.Int("ranking", card.Ranking),
 			slog.Any("error", err))
 		response := ErrorResponse{
@@ -279,7 +279,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 		h.logger.Error("Failed to update playing card",
 			slog.String("operation", "update_playing_card"),
 			slog.String("card_id", cardID),
-			slog.String("suite", card.Suite),
+			slog.String("suit", card.Suit),
 			slog.Int("ranking", card.Ranking),
 			slog.Any("error", err))
 		response := ErrorResponse{
