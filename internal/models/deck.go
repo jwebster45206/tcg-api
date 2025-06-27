@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,3 +75,66 @@ type CardWithQuantity struct {
 // 	Card     CardInterface `json:"card"`
 // 	Position int           `json:"position"`
 // }
+
+// CardInput represents a card reference for input operations.
+// It is a generic type that can be used for any card type for input purposes.
+type CardInput struct {
+	ID uuid.UUID `json:"id"`
+}
+
+// CardInputWithQuantity represents a simplified card input for create/update operations
+// It is a generic version of CardWithQuantity, used for input purposes.
+type CardInputWithQuantity struct {
+	Card     CardInput `json:"card"`
+	Quantity int       `json:"quantity"`
+}
+
+// CardCollectionInput is a simplified version of CardCollection.
+// As its name suggests, is used for input purposes.
+type CardCollectionInput struct {
+	Items []CardInputWithQuantity `json:"items"`
+}
+
+// DeckInput represents the input structure for deck creation and updates
+// Supports optional card management during deck operations
+type DeckInput struct {
+	Name           string               `json:"name"`
+	DeckType       string               `json:"deck_type"`
+	SleeveImageURL *string              `json:"sleeve_image_url,omitempty"`
+	Cards          *CardCollectionInput `json:"cards,omitempty"` // Optional cards for create/update
+}
+
+func (d *DeckInput) Validate() error {
+	if d.Name == "" {
+		return &ValidationError{
+			Field:   "name",
+			Message: "Deck name is required",
+		}
+	}
+	if d.Cards != nil {
+		for i, cardInput := range d.Cards.Items {
+			if cardInput.Card.ID == uuid.Nil {
+				return &ValidationError{
+					Field:   fmt.Sprintf("cards.items[%d].card.id", i),
+					Message: "Card ID is required",
+				}
+			}
+			if cardInput.Quantity <= 0 {
+				return &ValidationError{
+					Field:   fmt.Sprintf("cards.items[%d].quantity", i),
+					Message: "Card quantity must be positive",
+				}
+			}
+		}
+	}
+	return nil
+}
+
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}

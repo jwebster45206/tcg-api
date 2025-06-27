@@ -209,10 +209,23 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 
 // createDeck handles POST /decks
 func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
-	var deck models.Deck
-	if err := json.NewDecoder(r.Body).Decode(&deck); err != nil {
+	var deckInput models.DeckInput
+	if err := json.NewDecoder(r.Body).Decode(&deckInput); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
+	}
+
+	// Validate the input using the model's validation method
+	if err := deckInput.Validate(); err != nil {
+		h.handleError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// Convert input to deck model for basic field updates
+	deck := models.Deck{
+		Name:           deckInput.Name,
+		DeckType:       deckInput.DeckType,
+		SleeveImageURL: deckInput.SleeveImageURL,
 	}
 
 	createdDeck, err := h.storage.CreateDeck(r.Context(), deck)
@@ -220,6 +233,43 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("Failed to create deck", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	// If cards are provided, set them for the new deck
+	if deckInput.Cards != nil && len(deckInput.Cards.Items) > 0 {
+		err = h.storage.SetDeckCards(r.Context(), createdDeck.ID, deckInput.Cards.Items)
+		if err != nil {
+			h.logger.Error("Failed to set deck cards", "error", err, "deck_id", createdDeck.ID)
+			// Note: We could consider rolling back the deck creation here, but for now we'll just log the error
+			// The deck exists but without cards - client can retry setting cards later
+		}
+	}
+
+	// Check if response should include cards
+	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
+	if includeCards {
+		cards, err := h.storage.ListDeckCards(r.Context(), createdDeck.ID)
+		if err != nil {
+			h.logger.Error("Failed to get deck cards for response", "error", err, "deck_id", createdDeck.ID)
+			// Continue without cards in response rather than failing the whole request
+		} else {
+			totalCount := 0
+			for _, cardWithQuantity := range cards {
+				totalCount += cardWithQuantity.Quantity
+			}
+
+			cardCollection := &models.CardCollection{
+				TotalCount:  totalCount,
+				UniqueCount: len(cards),
+				Items:       make([]models.CardWithQuantity, len(cards)),
+			}
+
+			// Convert from pointers to values for the response
+			for i, cardPtr := range cards {
+				cardCollection.Items[i] = *cardPtr
+			}
+			createdDeck.Cards = cardCollection
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -239,13 +289,27 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 	}
 
 	// Parse request body
-	var deck models.Deck
-	if err := json.NewDecoder(r.Body).Decode(&deck); err != nil {
+	var deckInput models.DeckInput
+	if err := json.NewDecoder(r.Body).Decode(&deckInput); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	deck.ID = deckID
+	// Validate the input using the model's validation method
+	if err := deckInput.Validate(); err != nil {
+		h.handleError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// Convert input to deck model for basic field updates
+	deck := models.Deck{
+		ID:             deckID,
+		Name:           deckInput.Name,
+		DeckType:       deckInput.DeckType,
+		SleeveImageURL: deckInput.SleeveImageURL,
+	}
+
+	// Update the deck's basic information
 	updatedDeck, err := h.storage.UpdateDeck(r.Context(), deck)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -255,6 +319,54 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 		return
+	}
+
+	// Handle card updates if provided
+	if deckInput.Cards != nil {
+		// Get current deck cards to compare
+		currentCards, err := h.storage.ListDeckCards(r.Context(), deckID)
+		if err != nil {
+			h.logger.Error("Failed to get current deck cards", "error", err, "deck_id", deckID)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// Use our efficient comparison function to check if cards changed
+		if deckCardsChangedFromInput(currentCards, deckInput.Cards) {
+			err = h.storage.SetDeckCards(r.Context(), deckID, deckInput.Cards.Items)
+			if err != nil {
+				h.logger.Error("Failed to update deck cards", "error", err, "deck_id", deckID)
+				http.Error(w, "Failed to update deck cards", http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
+	// Check if response should include cards
+	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
+	if includeCards {
+		cards, err := h.storage.ListDeckCards(r.Context(), deckID)
+		if err != nil {
+			h.logger.Error("Failed to get deck cards for response", "error", err, "deck_id", deckID)
+			// Continue without cards in response rather than failing the whole request
+		} else {
+			totalCount := 0
+			for _, cardWithQuantity := range cards {
+				totalCount += cardWithQuantity.Quantity
+			}
+
+			cardCollection := &models.CardCollection{
+				TotalCount:  totalCount,
+				UniqueCount: len(cards),
+				Items:       make([]models.CardWithQuantity, len(cards)),
+			}
+
+			// Convert from pointers to values for the response
+			for i, cardPtr := range cards {
+				cardCollection.Items[i] = *cardPtr
+			}
+			updatedDeck.Cards = cardCollection
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -290,7 +402,7 @@ func (h *DecksHandler) deleteDeck(w http.ResponseWriter, r *http.Request, deckID
 
 // handleError handles validation errors and other structured errors
 func (h *DecksHandler) handleError(w http.ResponseWriter, err error, defaultStatus int) {
-	var validationErr *ValidationError
+	var validationErr *models.ValidationError
 	if errors.As(err, &validationErr) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)

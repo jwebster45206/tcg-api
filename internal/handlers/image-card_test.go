@@ -52,9 +52,9 @@ func TestImageCardsHandler_ListCards(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	// Should return an empty list since mock storage starts empty
-	if len(cards) != 0 {
-		t.Errorf("Expected empty card list, got %d cards", len(cards))
+	// Should return 1 card since mock storage has sample data
+	if len(cards) != 1 {
+		t.Errorf("Expected 1 card in list, got %d cards", len(cards))
 	}
 }
 

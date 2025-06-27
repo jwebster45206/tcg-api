@@ -81,7 +81,7 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_filters"),
 			slog.Any("error", err))
 
-		var validationErr *ValidationError
+		var validationErr *models.ValidationError
 		var response ErrorResponse
 		if errors.As(err, &validationErr) {
 			response = ErrorResponse{
@@ -105,7 +105,7 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_sorts"),
 			slog.Any("error", err))
 
-		var validationErr *ValidationError
+		var validationErr *models.ValidationError
 		var response ErrorResponse
 		if errors.As(err, &validationErr) {
 			response = ErrorResponse{
@@ -129,7 +129,7 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_pagination"),
 			slog.Any("error", err))
 
-		var validationErr *ValidationError
+		var validationErr *models.ValidationError
 		var response ErrorResponse
 		if errors.As(err, &validationErr) {
 			response = ErrorResponse{

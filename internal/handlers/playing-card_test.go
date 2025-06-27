@@ -38,9 +38,9 @@ func TestPlayingCardsHandler_ListCards(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	// Should return an empty list since mock storage starts empty
-	if len(cards) != 0 {
-		t.Errorf("Expected empty card list, got %d cards", len(cards))
+	// Should return 3 cards since mock storage has sample data
+	if len(cards) != 3 {
+		t.Errorf("Expected 3 cards in list, got %d cards", len(cards))
 	}
 }
 
