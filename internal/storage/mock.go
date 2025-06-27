@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -34,13 +35,69 @@ func NewMockStorage() Storage {
 		deckCards:    make(map[uuid.UUID][]*models.CardWithQuantity),
 	}
 
-	// Add some sample cards for development
-	sampleCards := []*models.GameCard{}
+	// Add some sample playing cards for testing
+	samplePlayingCards := []*models.PlayingCard{
+		{
+			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+			Name:          "Ace of Spades",
+			Description:   "The ace of spades playing card",
+			FrontImageURL: "https://example.com/ace-spades.jpg",
+			BackImageURL:  "https://example.com/back.jpg",
+			Suit:          "spades",
+			Ranking:       1,
+		},
+		{
+			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
+			Name:          "King of Hearts",
+			Description:   "The king of hearts playing card",
+			FrontImageURL: "https://example.com/king-hearts.jpg",
+			BackImageURL:  "https://example.com/back.jpg",
+			Suit:          "hearts",
+			Ranking:       13,
+		},
+		{
+			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440003"),
+			Name:          "Queen of Diamonds",
+			Description:   "The queen of diamonds playing card",
+			FrontImageURL: "https://example.com/queen-diamonds.jpg",
+			BackImageURL:  "https://example.com/back.jpg",
+			Suit:          "diamonds",
+			Ranking:       12,
+		},
+	}
+
+	// Add some sample image cards
+	sampleImageCards := []*models.ImageCard{
+		{
+			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440004"),
+			Name:          "Sample Image Card",
+			Description:   "A sample image card for testing",
+			FrontImageURL: "https://example.com/sample-front.jpg",
+			BackImageURL:  "https://example.com/sample-back.jpg",
+		},
+	}
+
+	// Add some sample game cards
+	sampleGameCards := []*models.GameCard{
+		{
+			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440005"),
+			Name:          "Sample Game Card",
+			FrontImageURL: "https://example.com/game-front.jpg",
+			BackImageURL:  "https://example.com/game-back.jpg",
+		},
+	}
 
 	// Populate the mock storage with sample data
-	for _, card := range sampleCards {
+	for _, card := range samplePlayingCards {
+		storage.playingCards[card.ID] = card
+	}
+	for _, card := range sampleImageCards {
+		storage.imageCards[card.ID] = card
+	}
+	for _, card := range sampleGameCards {
 		storage.gameCards[card.ID] = card
 	}
+
 	return storage
 }
 
@@ -368,22 +425,95 @@ func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*m
 	return []*models.CardWithQuantity{}, nil
 }
 
-func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardWithQuantity) error {
+func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.DeckCardInput) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Check if the deck exists
 	if _, exists := m.decks[deckID]; !exists {
 		return ErrNotFound
 	}
 
-	// Convert slice to pointer slice and store
-	cardPtrs := make([]*models.CardWithQuantity, len(cards))
-	for i, card := range cards {
-		cardCopy := card // Create a copy to avoid pointer issues
-		cardPtrs[i] = &cardCopy
+	// Validate that all cards exist and convert to CardWithQuantity
+	cardPtrs := make([]*models.CardWithQuantity, 0, len(cards))
+
+	for _, cardInput := range cards {
+		var foundCard models.CardInterface
+
+		for _, pc := range m.playingCards {
+			if pc.ID == cardInput.CardID {
+				foundCard = pc
+				break
+			}
+		}
+
+		if foundCard == nil {
+			for _, ic := range m.imageCards {
+				if ic.ID == cardInput.CardID {
+					foundCard = ic
+					break
+				}
+			}
+		}
+
+		if foundCard == nil {
+			for _, gc := range m.gameCards {
+				if gc.ID == cardInput.CardID {
+					foundCard = gc
+					break
+				}
+			}
+		}
+
+		if foundCard == nil {
+			return fmt.Errorf("card not found: %s", cardInput.CardID)
+		}
+
+		cardWithQuantity := &models.CardWithQuantity{
+			Card:     foundCard,
+			Quantity: cardInput.Quantity,
+		}
+		cardPtrs = append(cardPtrs, cardWithQuantity)
 	}
 
 	m.deckCards[deckID] = cardPtrs
 	return nil
+}
+
+func (m *MockStorage) GetCardsByIDs(ctx context.Context, cardIDs []uuid.UUID) ([]models.CardInterface, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var cards []models.CardInterface
+
+	for _, cardID := range cardIDs {
+		var found bool
+
+		if card, exists := m.playingCards[cardID]; exists {
+			cardCopy := *card
+			cards = append(cards, &cardCopy)
+			found = true
+		}
+
+		if !found {
+			if card, exists := m.imageCards[cardID]; exists {
+				cardCopy := *card
+				cards = append(cards, &cardCopy)
+				found = true
+			}
+		}
+
+		if !found {
+			if card, exists := m.gameCards[cardID]; exists {
+				cardCopy := *card
+				cards = append(cards, &cardCopy)
+				found = true
+			}
+		}
+
+		if !found {
+			return nil, ErrNotFound
+		}
+	}
+
+	return cards, nil
 }

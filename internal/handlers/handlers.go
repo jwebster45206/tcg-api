@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jwebster45206/tcg-api/internal/models"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
@@ -37,7 +38,7 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 		if strings.Contains(content, "][") {
 			parts := strings.Split(content, "][")
 			if len(parts) != 2 {
-				return nil, &ValidationError{
+				return nil, &models.ValidationError{
 					Field:   "filter",
 					Message: "Invalid filter format",
 				}
@@ -50,14 +51,14 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 		}
 
 		if !config.IsFilterAllowed(field) {
-			return nil, &ValidationError{
+			return nil, &models.ValidationError{
 				Field:   field,
 				Message: "Not allowed",
 			}
 		}
 
 		if !isValidOperator(operator) {
-			return nil, &ValidationError{
+			return nil, &models.ValidationError{
 				Field:   field,
 				Message: "Invalid operator",
 			}
@@ -80,7 +81,7 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 			if len(values) == 1 {
 				convertedValue, err := convertFilterValue(values[0], fieldType)
 				if err != nil {
-					return nil, &ValidationError{
+					return nil, &models.ValidationError{
 						Field:   field,
 						Message: fmt.Sprintf("Invalid value for field '%s': %v", field, err),
 					}
@@ -92,7 +93,7 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 				for i, v := range values {
 					convertedValue, err := convertFilterValue(v, fieldType)
 					if err != nil {
-						return nil, &ValidationError{
+						return nil, &models.ValidationError{
 							Field:   field,
 							Message: fmt.Sprintf("Invalid value for field '%s': %v", field, err),
 						}
@@ -146,7 +147,7 @@ func ParseSorts(r *http.Request, config query.QueryConfig) ([]query.SortOption, 
 
 		// Validate field is allowed
 		if !config.IsSortAllowed(sortField) {
-			return nil, &ValidationError{
+			return nil, &models.ValidationError{
 				Field:   "sort",
 				Message: "Field '" + sortField + "' is not allowed for sorting",
 			}
@@ -174,7 +175,7 @@ func ParsePagination(r *http.Request) (offset, limit int, err error) {
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		page, err := strconv.Atoi(pageStr)
 		if err != nil || page < 1 {
-			return 0, 0, &ValidationError{
+			return 0, 0, &models.ValidationError{
 				Field:   "page",
 				Message: "Page must be a positive integer",
 			}
@@ -184,7 +185,7 @@ func ParsePagination(r *http.Request) (offset, limit int, err error) {
 		if pageSizeStr := r.URL.Query().Get("page_size"); pageSizeStr != "" {
 			pageSize, err = strconv.Atoi(pageSizeStr)
 			if err != nil || pageSize < 1 || pageSize > 100 {
-				return 0, 0, &ValidationError{
+				return 0, 0, &models.ValidationError{
 					Field:   "page_size",
 					Message: "Page size must be between 1 and 100",
 				}
@@ -198,7 +199,7 @@ func ParsePagination(r *http.Request) (offset, limit int, err error) {
 		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 			offset, err = strconv.Atoi(offsetStr)
 			if err != nil || offset < 0 {
-				return 0, 0, &ValidationError{
+				return 0, 0, &models.ValidationError{
 					Field:   "offset",
 					Message: "Offset must be a non-negative integer",
 				}
@@ -208,7 +209,7 @@ func ParsePagination(r *http.Request) (offset, limit int, err error) {
 		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 			limit, err = strconv.Atoi(limitStr)
 			if err != nil || limit < 1 || limit > 100 {
-				return 0, 0, &ValidationError{
+				return 0, 0, &models.ValidationError{
 					Field:   "limit",
 					Message: "Limit must be between 1 and 100",
 				}
@@ -312,12 +313,37 @@ func convertFilterValue(value string, fieldType query.FieldType) (interface{}, e
 	}
 }
 
-// ValidationError represents a validation error
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-}
+// deckCardsChangedFromInput compares current deck cards with a new card collection input to determine if they've changed
+// Returns true if the cards are different (different cards, quantities, or order)
+func deckCardsChangedFromInput(current []*models.CardWithQuantity, newCollection *models.CardCollectionInput) bool {
+	// If both are empty, no change
+	if (len(current) == 0) && (newCollection == nil || len(newCollection.Items) == 0) {
+		return false
+	}
 
-func (e *ValidationError) Error() string {
-	return e.Message
+	// If different number of unique cards, changed
+	if len(current) != len(newCollection.Items) {
+		return true
+	}
+
+	// Create maps for comparison (card ID -> quantity)
+	currentMap := make(map[uuid.UUID]int)
+	for _, cardWithQty := range current {
+		currentMap[cardWithQty.Card.GetID()] = cardWithQty.Quantity
+	}
+
+	newMap := make(map[uuid.UUID]int)
+	for _, cardInput := range newCollection.Items {
+		newMap[cardInput.CardID] = cardInput.Quantity
+	}
+
+	// Compare the maps
+	for cardID, currentQty := range currentMap {
+		newQty, exists := newMap[cardID]
+		if !exists || currentQty != newQty {
+			return true
+		}
+	}
+
+	return false
 }

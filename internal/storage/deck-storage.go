@@ -322,7 +322,7 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 	return cards, nil
 }
 
-func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardWithQuantity) error {
+func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.DeckCardInput) error {
 	// Start transaction
 	tx, err := m.writerDB.BeginTx(ctx, nil)
 	if err != nil {
@@ -352,17 +352,16 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 	}
 
 	// Prepare batch insert for new cards
-	// First, we need to get internal card IDs from UUIDs
+	// First, we need to get internal card IDs from UUIDs and validate existence
 	cardUUIDs := make([]interface{}, 0, len(cards))
 	cardQuantityMap := make(map[uuid.UUID]int)
 
-	for _, cardWithQuantity := range cards {
-		cardID := cardWithQuantity.Card.GetID()
-		cardUUIDs = append(cardUUIDs, cardID[:])
-		cardQuantityMap[cardID] = cardWithQuantity.Quantity
+	for _, cardInput := range cards {
+		cardUUIDs = append(cardUUIDs, cardInput.CardID[:])
+		cardQuantityMap[cardInput.CardID] = cardInput.Quantity
 	}
 
-	// Build query to get internal card IDs
+	// Build query to get internal card IDs and validate that all cards exist
 	placeholders := strings.Repeat("?,", len(cardUUIDs)-1) + "?"
 	cardQuery := fmt.Sprintf("SELECT id, uuid FROM cards WHERE uuid IN (%s) AND deleted = false", placeholders)
 
@@ -372,9 +371,10 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 	}
 	defer cardRows.Close()
 
-	// Build the insert data
+	// Build the insert data and validate that all cards exist
 	var insertValues []interface{}
 	var valuePlaceholders []string
+	foundCards := make(map[uuid.UUID]bool)
 
 	for cardRows.Next() {
 		var internalCardID int
@@ -390,6 +390,7 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 			return fmt.Errorf("failed to parse card UUID: %w", err)
 		}
 
+		foundCards[cardUUID] = true
 		quantity := cardQuantityMap[cardUUID]
 		insertValues = append(insertValues, internalDeckID, internalCardID, quantity)
 		valuePlaceholders = append(valuePlaceholders, "(?, ?, ?)")
@@ -397,6 +398,11 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 
 	if err = cardRows.Err(); err != nil {
 		return fmt.Errorf("error iterating over card rows: %w", err)
+	}
+
+	// Validate that all requested cards were found
+	if len(foundCards) != len(cards) {
+		return fmt.Errorf("one or more cards not found")
 	}
 
 	// Insert the deck cards

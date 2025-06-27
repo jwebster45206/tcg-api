@@ -105,6 +105,83 @@ func TestDecksHandler_CreateDeck(t *testing.T) {
 	}
 }
 
+func TestDecksHandler_CreateDeckWithCards(t *testing.T) {
+	deckName := "Test Deck with Cards"
+	deckType := "playing-card"
+
+	// Use known card IDs from mock storage
+	cardID1 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") // Ace of Spades
+	cardID2 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002") // King of Hearts
+
+	deckInput := models.DeckInput{
+		Name:           deckName,
+		DeckType:       deckType,
+		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
+		Cards: &models.CardCollectionInput{
+			Items: []models.DeckCardInput{
+				{CardID: cardID1, Quantity: 2},
+				{CardID: cardID2, Quantity: 1},
+			},
+		},
+	}
+
+	body, err := json.Marshal(deckInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest("POST", "/v1/decks?include=cards", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+
+	// Create handler with dependencies
+	mockStorage := storage.NewMockStorage()
+	logger := testLogger()
+	handler := NewDecksHandler(mockStorage, logger)
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusCreated {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusCreated)
+		t.Logf("Response body: %s", rr.Body.String())
+	}
+
+	var responseDeck models.Deck
+	if err := json.Unmarshal(rr.Body.Bytes(), &responseDeck); err != nil {
+		t.Errorf("Failed to parse response body: %v", err)
+	}
+
+	// Verify the deck was created with expected values
+	if responseDeck.Name != deckName {
+		t.Errorf("Expected deck name %s, got %s", deckName, responseDeck.Name)
+	}
+
+	if responseDeck.DeckType != deckType {
+		t.Errorf("Expected deck type %s, got %s", deckType, responseDeck.DeckType)
+	}
+
+	if responseDeck.ID == uuid.Nil {
+		t.Error("Expected deck ID to be generated")
+	}
+
+	// Verify cards are included in response
+	if responseDeck.Cards == nil {
+		t.Error("Expected cards to be included in response")
+	} else {
+		if responseDeck.Cards.UniqueCount != 2 {
+			t.Errorf("Expected 2 unique cards, got %d", responseDeck.Cards.UniqueCount)
+		}
+		if responseDeck.Cards.TotalCount != 3 {
+			t.Errorf("Expected total count of 3, got %d", responseDeck.Cards.TotalCount)
+		}
+	}
+}
+
 func TestDecksHandler_GetDeck(t *testing.T) {
 	// Create a deck first
 	deckID := uuid.New()
@@ -270,18 +347,23 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 	}
 }
 
-func TestDecksHandler_UpdateDeck_NotFound(t *testing.T) {
-	nonExistentID := uuid.New()
-	updateDeck := models.Deck{
-		Name: "Updated Name",
+func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
+	// Create a deck first
+	deckName := "Test Deck for Update"
+	deckType := "playing-card"
+
+	deck := models.Deck{
+		Name:           deckName,
+		DeckType:       deckType,
+		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
 	}
 
-	body, err := json.Marshal(updateDeck)
+	body, err := json.Marshal(deck)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	req, err := http.NewRequest("PATCH", fmt.Sprintf("/v1/decks/%s", nonExistentID), bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", "/v1/decks", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,15 +371,76 @@ func TestDecksHandler_UpdateDeck_NotFound(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
+	// Create handler with dependencies
 	mockStorage := storage.NewMockStorage()
 	logger := testLogger()
 	handler := NewDecksHandler(mockStorage, logger)
 
 	handler.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusNotFound)
+	if status := rr.Code; status != http.StatusCreated {
+		t.Fatalf("failed to create deck: got %v want %v", status, http.StatusCreated)
+	}
+
+	var createdDeck models.Deck
+	if err := json.Unmarshal(rr.Body.Bytes(), &createdDeck); err != nil {
+		t.Fatalf("Failed to parse response body: %v", err)
+	}
+
+	// Now update the deck with cards
+	cardID1 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") // Ace of Spades
+	cardID2 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440003") // Queen of Diamonds
+
+	deckInput := models.DeckInput{
+		Name:     "Updated Deck Name",
+		DeckType: deckType,
+		Cards: &models.CardCollectionInput{
+			Items: []models.DeckCardInput{
+				{CardID: cardID1, Quantity: 1},
+				{CardID: cardID2, Quantity: 3},
+			},
+		},
+	}
+
+	updateBody, err := json.Marshal(deckInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updateReq, err := http.NewRequest("PATCH", "/v1/decks/"+createdDeck.ID.String()+"?include=cards", bytes.NewBuffer(updateBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	updateReq.Header.Set("Content-Type", "application/json")
+
+	updateRr := httptest.NewRecorder()
+	handler.ServeHTTP(updateRr, updateReq)
+
+	if status := updateRr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		t.Logf("Response body: %s", updateRr.Body.String())
+	}
+
+	var updatedDeck models.Deck
+	if err := json.Unmarshal(updateRr.Body.Bytes(), &updatedDeck); err != nil {
+		t.Errorf("Failed to parse response body: %v", err)
+	}
+
+	// Verify the deck was updated
+	if updatedDeck.Name != "Updated Deck Name" {
+		t.Errorf("Expected deck name 'Updated Deck Name', got %s", updatedDeck.Name)
+	}
+
+	// Verify cards are included in response
+	if updatedDeck.Cards == nil {
+		t.Error("Expected cards to be included in response")
+	} else {
+		if updatedDeck.Cards.UniqueCount != 2 {
+			t.Errorf("Expected 2 unique cards, got %d", updatedDeck.Cards.UniqueCount)
+		}
+		if updatedDeck.Cards.TotalCount != 4 {
+			t.Errorf("Expected total count of 4, got %d", updatedDeck.Cards.TotalCount)
+		}
 	}
 }
 

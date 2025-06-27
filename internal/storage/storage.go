@@ -19,7 +19,7 @@ type Storage interface {
 	UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
 	ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error)
-	SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardWithQuantity) error
+	SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.DeckCardInput) error
 
 	// ImageCard operations
 	ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error)

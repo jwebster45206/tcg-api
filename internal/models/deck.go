@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -74,3 +75,64 @@ type CardWithQuantity struct {
 // 	Card     CardInterface `json:"card"`
 // 	Position int           `json:"position"`
 // }
+
+// DeckCardInput represents a simplified card input for create/update operations
+// Clients only need to provide card ID and quantity
+type DeckCardInput struct {
+	CardID   uuid.UUID `json:"card_id"`
+	Quantity int       `json:"quantity"`
+}
+
+// DeckInput represents the input structure for deck creation and updates
+// Supports optional card management during deck operations
+type DeckInput struct {
+	Name           string               `json:"name"`
+	DeckType       string               `json:"deck_type"`
+	SleeveImageURL *string              `json:"sleeve_image_url,omitempty"`
+	Cards          *CardCollectionInput `json:"cards,omitempty"` // Optional cards for create/update
+}
+
+// CardCollectionInput is used for create/update operations with simplified card inputs
+type CardCollectionInput struct {
+	Items []DeckCardInput `json:"items"`
+}
+
+// Validate validates the DeckInput and returns a ValidationError if invalid
+func (d *DeckInput) Validate() error {
+	// Validate required fields
+	if d.Name == "" {
+		return &ValidationError{
+			Field:   "name",
+			Message: "Deck name is required",
+		}
+	}
+
+	// Validate card quantities if cards are provided
+	if d.Cards != nil {
+		for i, cardInput := range d.Cards.Items {
+			if cardInput.CardID == uuid.Nil {
+				return &ValidationError{
+					Field:   fmt.Sprintf("cards.items[%d].card_id", i),
+					Message: "Card ID is required",
+				}
+			}
+			if cardInput.Quantity <= 0 {
+				return &ValidationError{
+					Field:   fmt.Sprintf("cards.items[%d].quantity", i),
+					Message: "Card quantity must be positive",
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
