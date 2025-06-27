@@ -332,7 +332,9 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	// Get the deck's internal ID and verify it exists
 	var internalDeckID int
