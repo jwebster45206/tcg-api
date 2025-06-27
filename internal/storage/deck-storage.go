@@ -322,6 +322,10 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 	return cards, nil
 }
 
+// SetDeckCards replaces the cards in a deck with the provided list of cards.
+// It deletes existing cards and inserts the new ones, ensuring all cards exist in the database.
+// Assumption: Decks size is limited to ~100 cards,
+// so we can afford to delete and re-insert all cards in a single transaction.
 func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardInputWithQuantity) error {
 	// Start transaction
 	tx, err := m.writerDB.BeginTx(ctx, nil)

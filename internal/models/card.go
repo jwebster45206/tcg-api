@@ -16,13 +16,12 @@ type CardInterface interface {
 	GetCardType() string // Used for routing to correct storage/handlers
 }
 
-// CardWithQuantityJSON represents the JSON structure for CardWithQuantity
+// CardWithQuantityJSON allows marshaling polymorphic card types with quantity.
 type CardWithQuantityJSON struct {
 	Card     json.RawMessage `json:"card"`
 	Quantity int             `json:"quantity"`
 }
 
-// MarshalJSON implements custom JSON marshaling for CardWithQuantity
 func (cwq CardWithQuantity) MarshalJSON() ([]byte, error) {
 	// Create a wrapper struct with the card type information
 	cardData := struct {
@@ -49,7 +48,6 @@ func (cwq CardWithQuantity) MarshalJSON() ([]byte, error) {
 	return json.Marshal(result)
 }
 
-// UnmarshalJSON implements custom JSON unmarshaling for CardWithQuantity
 func (cwq *CardWithQuantity) UnmarshalJSON(data []byte) error {
 	var temp CardWithQuantityJSON
 	if err := json.Unmarshal(data, &temp); err != nil {
