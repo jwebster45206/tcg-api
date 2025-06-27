@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -81,21 +80,11 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_filters"),
 			slog.Any("error", err))
 
-		var validationErr *models.ValidationError
-		var response ErrorResponse
-		if errors.As(err, &validationErr) {
-			response = ErrorResponse{
-				Error:   "validation_error",
-				Message: validationErr.Message,
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-		} else {
-			response = ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to parse query parameters",
-			}
-			writeJSONResponse(w, http.StatusInternalServerError, response)
+		response := ErrorResponse{
+			Error:   "validation_error",
+			Message: err.Error(),
 		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
@@ -105,21 +94,11 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_sorts"),
 			slog.Any("error", err))
 
-		var validationErr *models.ValidationError
-		var response ErrorResponse
-		if errors.As(err, &validationErr) {
-			response = ErrorResponse{
-				Error:   "validation_error",
-				Message: validationErr.Message,
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-		} else {
-			response = ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to parse query parameters",
-			}
-			writeJSONResponse(w, http.StatusInternalServerError, response)
+		response := ErrorResponse{
+			Error:   "validation_error",
+			Message: err.Error(),
 		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
@@ -129,21 +108,11 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_pagination"),
 			slog.Any("error", err))
 
-		var validationErr *models.ValidationError
-		var response ErrorResponse
-		if errors.As(err, &validationErr) {
-			response = ErrorResponse{
-				Error:   "validation_error",
-				Message: validationErr.Message,
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-		} else {
-			response = ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to parse query parameters",
-			}
-			writeJSONResponse(w, http.StatusInternalServerError, response)
+		response := ErrorResponse{
+			Error:   "validation_error",
+			Message: err.Error(),
 		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 	pageSize := limit

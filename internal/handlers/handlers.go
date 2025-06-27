@@ -38,10 +38,7 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 		if strings.Contains(content, "][") {
 			parts := strings.Split(content, "][")
 			if len(parts) != 2 {
-				return nil, &models.ValidationError{
-					Field:   "filter",
-					Message: "Invalid filter format",
-				}
+				return nil, fmt.Errorf("invalid filter format")
 			}
 			field = parts[0]
 			operator = parts[1]
@@ -51,17 +48,11 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 		}
 
 		if !config.IsFilterAllowed(field) {
-			return nil, &models.ValidationError{
-				Field:   field,
-				Message: "Not allowed",
-			}
+			return nil, fmt.Errorf("filter field '%s' not allowed", field)
 		}
 
 		if !isValidOperator(operator) {
-			return nil, &models.ValidationError{
-				Field:   field,
-				Message: "Invalid operator",
-			}
+			return nil, fmt.Errorf("invalid operator '%s' for field '%s'", operator, field)
 		}
 
 		if filterMap[field] == nil {
@@ -81,10 +72,7 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 			if len(values) == 1 {
 				convertedValue, err := convertFilterValue(values[0], fieldType)
 				if err != nil {
-					return nil, &models.ValidationError{
-						Field:   field,
-						Message: fmt.Sprintf("Invalid value for field '%s': %v", field, err),
-					}
+					return nil, fmt.Errorf("invalid value for field '%s': %v", field, err)
 				}
 				value = convertedValue
 			} else if len(values) > 1 {
@@ -93,10 +81,7 @@ func ParseFilters(r *http.Request, config query.QueryConfig) ([]query.Filter, er
 				for i, v := range values {
 					convertedValue, err := convertFilterValue(v, fieldType)
 					if err != nil {
-						return nil, &models.ValidationError{
-							Field:   field,
-							Message: fmt.Sprintf("Invalid value for field '%s': %v", field, err),
-						}
+						return nil, fmt.Errorf("invalid value for field '%s': %v", field, err)
 					}
 					convertedValues[i] = convertedValue
 				}
@@ -147,10 +132,7 @@ func ParseSorts(r *http.Request, config query.QueryConfig) ([]query.SortOption, 
 
 		// Validate field is allowed
 		if !config.IsSortAllowed(sortField) {
-			return nil, &models.ValidationError{
-				Field:   "sort",
-				Message: "Field '" + sortField + "' is not allowed for sorting",
-			}
+			return nil, fmt.Errorf("field '%s' is not allowed for sorting", sortField)
 		}
 
 		dbColumn, _ := config.GetSortDBColumn(sortField)
@@ -175,20 +157,14 @@ func ParsePagination(r *http.Request) (offset, limit int, err error) {
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		page, err := strconv.Atoi(pageStr)
 		if err != nil || page < 1 {
-			return 0, 0, &models.ValidationError{
-				Field:   "page",
-				Message: "Page must be a positive integer",
-			}
+			return 0, 0, fmt.Errorf("page must be a positive integer")
 		}
 
 		pageSize := 50 // Default page size
 		if pageSizeStr := r.URL.Query().Get("page_size"); pageSizeStr != "" {
 			pageSize, err = strconv.Atoi(pageSizeStr)
 			if err != nil || pageSize < 1 || pageSize > 100 {
-				return 0, 0, &models.ValidationError{
-					Field:   "page_size",
-					Message: "Page size must be between 1 and 100",
-				}
+				return 0, 0, fmt.Errorf("page size must be between 1 and 100")
 			}
 		}
 
@@ -199,20 +175,14 @@ func ParsePagination(r *http.Request) (offset, limit int, err error) {
 		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 			offset, err = strconv.Atoi(offsetStr)
 			if err != nil || offset < 0 {
-				return 0, 0, &models.ValidationError{
-					Field:   "offset",
-					Message: "Offset must be a non-negative integer",
-				}
+				return 0, 0, fmt.Errorf("offset must be a non-negative integer")
 			}
 		}
 
 		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 			limit, err = strconv.Atoi(limitStr)
 			if err != nil || limit < 1 || limit > 100 {
-				return 0, 0, &models.ValidationError{
-					Field:   "limit",
-					Message: "Limit must be between 1 and 100",
-				}
+				return 0, 0, fmt.Errorf("limit must be between 1 and 100")
 			}
 		}
 	}

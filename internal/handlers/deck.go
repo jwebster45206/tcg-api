@@ -400,22 +400,8 @@ func (h *DecksHandler) deleteDeck(w http.ResponseWriter, r *http.Request, deckID
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleError handles validation errors and other structured errors
+// handleError handles errors with appropriate HTTP status codes
 func (h *DecksHandler) handleError(w http.ResponseWriter, err error, defaultStatus int) {
-	var validationErr *models.ValidationError
-	if errors.As(err, &validationErr) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		if encErr := json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   "validation_error",
-			"field":   validationErr.Field,
-			"message": validationErr.Message,
-		}); encErr != nil {
-			h.logger.Error("Failed to encode validation error response", "error", encErr)
-		}
-		return
-	}
-
 	http.Error(w, err.Error(), defaultStatus)
 }
 
