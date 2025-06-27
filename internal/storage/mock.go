@@ -425,7 +425,7 @@ func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*m
 	return []*models.CardWithQuantity{}, nil
 }
 
-func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.DeckCardInput) error {
+func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardInputWithQuantity) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -440,7 +440,7 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 		var foundCard models.CardInterface
 
 		for _, pc := range m.playingCards {
-			if pc.ID == cardInput.CardID {
+			if pc.ID == cardInput.Card.ID {
 				foundCard = pc
 				break
 			}
@@ -448,7 +448,7 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 
 		if foundCard == nil {
 			for _, ic := range m.imageCards {
-				if ic.ID == cardInput.CardID {
+				if ic.ID == cardInput.Card.ID {
 					foundCard = ic
 					break
 				}
@@ -457,7 +457,7 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 
 		if foundCard == nil {
 			for _, gc := range m.gameCards {
-				if gc.ID == cardInput.CardID {
+				if gc.ID == cardInput.Card.ID {
 					foundCard = gc
 					break
 				}
@@ -465,7 +465,7 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 		}
 
 		if foundCard == nil {
-			return fmt.Errorf("card not found: %s", cardInput.CardID)
+			return fmt.Errorf("card not found: %s", cardInput.Card.ID)
 		}
 
 		cardWithQuantity := &models.CardWithQuantity{

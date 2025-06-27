@@ -322,7 +322,7 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 	return cards, nil
 }
 
-func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.DeckCardInput) error {
+func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardInputWithQuantity) error {
 	// Start transaction
 	tx, err := m.writerDB.BeginTx(ctx, nil)
 	if err != nil {
@@ -357,8 +357,8 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 	cardQuantityMap := make(map[uuid.UUID]int)
 
 	for _, cardInput := range cards {
-		cardUUIDs = append(cardUUIDs, cardInput.CardID[:])
-		cardQuantityMap[cardInput.CardID] = cardInput.Quantity
+		cardUUIDs = append(cardUUIDs, cardInput.Card.ID[:])
+		cardQuantityMap[cardInput.Card.ID] = cardInput.Quantity
 	}
 
 	// Build query to get internal card IDs and validate that all cards exist

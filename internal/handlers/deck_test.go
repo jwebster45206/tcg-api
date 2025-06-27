@@ -118,9 +118,9 @@ func TestDecksHandler_CreateDeckWithCards(t *testing.T) {
 		DeckType:       deckType,
 		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
 		Cards: &models.CardCollectionInput{
-			Items: []models.DeckCardInput{
-				{CardID: cardID1, Quantity: 2},
-				{CardID: cardID2, Quantity: 1},
+			Items: []models.CardInputWithQuantity{
+				{Card: models.CardInput{ID: cardID1}, Quantity: 2},
+				{Card: models.CardInput{ID: cardID2}, Quantity: 1},
 			},
 		},
 	}
@@ -395,9 +395,9 @@ func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
 		Name:     "Updated Deck Name",
 		DeckType: deckType,
 		Cards: &models.CardCollectionInput{
-			Items: []models.DeckCardInput{
-				{CardID: cardID1, Quantity: 1},
-				{CardID: cardID2, Quantity: 3},
+			Items: []models.CardInputWithQuantity{
+				{Card: models.CardInput{ID: cardID1}, Quantity: 1},
+				{Card: models.CardInput{ID: cardID2}, Quantity: 3},
 			},
 		},
 	}

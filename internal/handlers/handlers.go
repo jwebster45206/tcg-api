@@ -334,7 +334,7 @@ func deckCardsChangedFromInput(current []*models.CardWithQuantity, newCollection
 
 	newMap := make(map[uuid.UUID]int)
 	for _, cardInput := range newCollection.Items {
-		newMap[cardInput.CardID] = cardInput.Quantity
+		newMap[cardInput.Card.ID] = cardInput.Quantity
 	}
 
 	// Compare the maps

@@ -76,11 +76,23 @@ type CardWithQuantity struct {
 // 	Position int           `json:"position"`
 // }
 
-// DeckCardInput represents a simplified card input for create/update operations
-// Clients only need to provide card ID and quantity
-type DeckCardInput struct {
-	CardID   uuid.UUID `json:"card_id"`
+// CardInput represents a card reference for input operations.
+// It is a generic type that can be used for any card type for input purposes.
+type CardInput struct {
+	ID uuid.UUID `json:"id"`
+}
+
+// CardInputWithQuantity represents a simplified card input for create/update operations
+// It is a generic version of CardWithQuantity, used for input purposes.
+type CardInputWithQuantity struct {
+	Card     CardInput `json:"card"`
 	Quantity int       `json:"quantity"`
+}
+
+// CardCollectionInput is a simplified version of CardCollection.
+// As its name suggests, is used for input purposes.
+type CardCollectionInput struct {
+	Items []CardInputWithQuantity `json:"items"`
 }
 
 // DeckInput represents the input structure for deck creation and updates
@@ -92,27 +104,18 @@ type DeckInput struct {
 	Cards          *CardCollectionInput `json:"cards,omitempty"` // Optional cards for create/update
 }
 
-// CardCollectionInput is used for create/update operations with simplified card inputs
-type CardCollectionInput struct {
-	Items []DeckCardInput `json:"items"`
-}
-
-// Validate validates the DeckInput and returns a ValidationError if invalid
 func (d *DeckInput) Validate() error {
-	// Validate required fields
 	if d.Name == "" {
 		return &ValidationError{
 			Field:   "name",
 			Message: "Deck name is required",
 		}
 	}
-
-	// Validate card quantities if cards are provided
 	if d.Cards != nil {
 		for i, cardInput := range d.Cards.Items {
-			if cardInput.CardID == uuid.Nil {
+			if cardInput.Card.ID == uuid.Nil {
 				return &ValidationError{
-					Field:   fmt.Sprintf("cards.items[%d].card_id", i),
+					Field:   fmt.Sprintf("cards.items[%d].card.id", i),
 					Message: "Card ID is required",
 				}
 			}
@@ -124,7 +127,6 @@ func (d *DeckInput) Validate() error {
 			}
 		}
 	}
-
 	return nil
 }
 
