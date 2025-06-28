@@ -81,7 +81,7 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 			slog.Any("error", err))
 
 		response := ErrorResponse{
-			Error:   "validation_error",
+			Error:   errStrBadRequest,
 			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -96,7 +96,7 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 			slog.Any("error", err))
 
 		response := ErrorResponse{
-			Error:   "validation_error",
+			Error:   errStrBadRequest,
 			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -111,7 +111,7 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 			slog.Any("error", err))
 
 		response := ErrorResponse{
-			Error:   "validation_error",
+			Error:   errStrBadRequest,
 			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -128,7 +128,7 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 			slog.String("operation", "list_image_cards"),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to retrieve image cards",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -144,7 +144,7 @@ func (h *ImageCardsHandler) getCard(w http.ResponseWriter, r *http.Request, card
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -174,7 +174,7 @@ func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	var card models.ImageCard
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_json",
+			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -184,7 +184,7 @@ func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 	// Validate the card using the model's validation method
 	if err := card.Validate(); err != nil {
 		response := ErrorResponse{
-			Error:   "validation_error",
+			Error:   errStrBadRequest,
 			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -199,7 +199,7 @@ func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 			slog.String("card_name", card.Name),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrBadRequest,
 			Message: "Failed to create image card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -215,7 +215,7 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -232,7 +232,7 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "not_found",
+			Error:   errStrNotFound,
 			Message: "Card not found",
 		}
 		writeJSONResponse(w, http.StatusNotFound, response)
@@ -249,7 +249,7 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_json",
+			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -291,7 +291,7 @@ func (h *ImageCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, c
 			slog.String("card_name", updatedCard.Name),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to update image card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -307,7 +307,7 @@ func (h *ImageCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, c
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -321,7 +321,7 @@ func (h *ImageCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, c
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to delete image card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)

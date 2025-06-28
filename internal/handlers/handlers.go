@@ -15,6 +15,13 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
+const (
+	errStrBadRequest = "bad_request"
+	errStrValidation = "validation_error"
+	errStrInternal   = "internal_error"
+	errStrNotFound   = "not_found"
+)
+
 // ParseFilters parses filter parameters from an HTTP request using filter array syntax
 // Format: filter[field][operator]=value or filter[field]=value (defaults to '=' operator)
 // Returns a slice of filters or an error if validation fails

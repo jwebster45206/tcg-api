@@ -102,8 +102,8 @@ func TestPlayingCardsHandler_GetCard_InvalidID(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if response.Error != "invalid_id" {
-		t.Errorf("Expected error 'invalid_id', got '%s'", response.Error)
+	if response.Error != "bad_request" {
+		t.Errorf("Expected error 'bad_request', got '%s'", response.Error)
 	}
 }
 
@@ -180,8 +180,8 @@ func TestPlayingCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if response.Error != "invalid_json" {
-		t.Errorf("Expected error 'invalid_json', got '%s'", response.Error)
+	if response.Error != "bad_request" {
+		t.Errorf("Expected error 'bad_request', got '%s'", response.Error)
 	}
 }
 
@@ -220,8 +220,8 @@ func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if response.Error != "invalid_card" {
-		t.Errorf("Expected error 'invalid_card', got '%s'", response.Error)
+	if response.Error != "validation_error" {
+		t.Errorf("Expected error 'validation_error', got '%s'", response.Error)
 	}
 }
 
@@ -368,8 +368,8 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 		t.Errorf("Could not parse response body: %v", err)
 	}
 
-	if response.Error != "invalid_card" {
-		t.Errorf("Expected error 'invalid_card', got '%s'", response.Error)
+	if response.Error != "validation_error" {
+		t.Errorf("Expected error 'validation_error', got '%s'", response.Error)
 	}
 }
 
