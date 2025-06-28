@@ -106,35 +106,17 @@ type DeckInput struct {
 
 func (d *DeckInput) Validate() error {
 	if d.Name == "" {
-		return &ValidationError{
-			Field:   "name",
-			Message: "Deck name is required",
-		}
+		return fmt.Errorf("deck name is required")
 	}
 	if d.Cards != nil {
 		for i, cardInput := range d.Cards.Items {
 			if cardInput.Card.ID == uuid.Nil {
-				return &ValidationError{
-					Field:   fmt.Sprintf("cards.items[%d].card.id", i),
-					Message: "Card ID is required",
-				}
+				return fmt.Errorf("card ID is required for cards.items[%d]", i)
 			}
 			if cardInput.Quantity <= 0 {
-				return &ValidationError{
-					Field:   fmt.Sprintf("cards.items[%d].quantity", i),
-					Message: "Card quantity must be positive",
-				}
+				return fmt.Errorf("card quantity must be positive for cards.items[%d]", i)
 			}
 		}
 	}
 	return nil
-}
-
-type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-}
-
-func (e *ValidationError) Error() string {
-	return e.Message
 }

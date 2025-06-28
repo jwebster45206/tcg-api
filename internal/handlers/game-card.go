@@ -80,7 +80,7 @@ func (h *GameCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 			slog.String("operation", "list_game_cards"),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to retrieve cards",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -96,7 +96,7 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -111,7 +111,7 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "not_found",
+			Error:   errStrNotFound,
 			Message: "Card not found",
 		}
 		writeJSONResponse(w, http.StatusNotFound, response)
@@ -127,7 +127,7 @@ func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_json",
+			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -142,7 +142,7 @@ func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
 			slog.String("card_name", card.Name),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to create card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -158,7 +158,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -168,7 +168,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 	var card models.GameCard
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_json",
+			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -186,7 +186,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 			slog.String("card_name", card.Name),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to update card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -202,7 +202,7 @@ func (h *GameCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, ca
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -216,7 +216,7 @@ func (h *GameCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request, ca
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to delete card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)

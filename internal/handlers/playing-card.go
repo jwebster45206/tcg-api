@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -81,21 +80,11 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_filters"),
 			slog.Any("error", err))
 
-		var validationErr *models.ValidationError
-		var response ErrorResponse
-		if errors.As(err, &validationErr) {
-			response = ErrorResponse{
-				Error:   "validation_error",
-				Message: validationErr.Message,
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-		} else {
-			response = ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to parse query parameters",
-			}
-			writeJSONResponse(w, http.StatusInternalServerError, response)
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: err.Error(),
 		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
@@ -105,21 +94,11 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_sorts"),
 			slog.Any("error", err))
 
-		var validationErr *models.ValidationError
-		var response ErrorResponse
-		if errors.As(err, &validationErr) {
-			response = ErrorResponse{
-				Error:   "validation_error",
-				Message: validationErr.Message,
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-		} else {
-			response = ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to parse query parameters",
-			}
-			writeJSONResponse(w, http.StatusInternalServerError, response)
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: err.Error(),
 		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
@@ -129,21 +108,11 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "parse_pagination"),
 			slog.Any("error", err))
 
-		var validationErr *models.ValidationError
-		var response ErrorResponse
-		if errors.As(err, &validationErr) {
-			response = ErrorResponse{
-				Error:   "validation_error",
-				Message: validationErr.Message,
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-		} else {
-			response = ErrorResponse{
-				Error:   "internal_error",
-				Message: "Failed to parse query parameters",
-			}
-			writeJSONResponse(w, http.StatusInternalServerError, response)
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: err.Error(),
 		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 	pageSize := limit
@@ -155,7 +124,7 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 			slog.String("operation", "list_playing_cards"),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to retrieve playing cards",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -171,7 +140,7 @@ func (h *PlayingCardsHandler) getCard(w http.ResponseWriter, r *http.Request, ca
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -186,7 +155,7 @@ func (h *PlayingCardsHandler) getCard(w http.ResponseWriter, r *http.Request, ca
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "not_found",
+			Error:   errStrNotFound,
 			Message: "Playing card not found",
 		}
 		writeJSONResponse(w, http.StatusNotFound, response)
@@ -202,7 +171,7 @@ func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request)
 
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_json",
+			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -212,7 +181,7 @@ func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request)
 	// Validate the playing card
 	if err := card.Validate(); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_card",
+			Error:   errStrValidation,
 			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -228,7 +197,7 @@ func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request)
 			slog.Int("ranking", card.Ranking),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to create playing card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -244,7 +213,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -261,7 +230,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "not_found",
+			Error:   errStrNotFound,
 			Message: "Playing card not found",
 		}
 		writeJSONResponse(w, http.StatusNotFound, response)
@@ -278,7 +247,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 
 	if err := json.NewDecoder(r.Body).Decode(&updateCard); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_json",
+			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -291,7 +260,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 	// Validate the updated card
 	if err := updateCard.Validate(); err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_card",
+			Error:   errStrValidation,
 			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -307,7 +276,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 			slog.Int("ranking", updateCard.Ranking),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to update playing card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
@@ -323,7 +292,7 @@ func (h *PlayingCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request,
 	id, err := uuid.Parse(cardID)
 	if err != nil {
 		response := ErrorResponse{
-			Error:   "invalid_id",
+			Error:   errStrBadRequest,
 			Message: "Invalid card ID format",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
@@ -337,7 +306,7 @@ func (h *PlayingCardsHandler) deleteCard(w http.ResponseWriter, r *http.Request,
 			slog.String("card_id", cardID),
 			slog.Any("error", err))
 		response := ErrorResponse{
-			Error:   "internal_error",
+			Error:   errStrInternal,
 			Message: "Failed to delete playing card",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
