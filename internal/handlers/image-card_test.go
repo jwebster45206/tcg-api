@@ -512,14 +512,14 @@ func TestParseSorts(t *testing.T) {
 			queryParams: "sort=secret_field",
 			expected:    nil,
 			wantError:   true,
-			errorMsg:    "Field 'secret_field' is not allowed for sorting",
+			errorMsg:    "field 'secret_field' is not allowed for sorting",
 		},
 		{
 			name:        "mixed allowed and disallowed",
 			queryParams: "sort=created_at,secret_field",
 			expected:    nil,
 			wantError:   true,
-			errorMsg:    "Field 'secret_field' is not allowed for sorting",
+			errorMsg:    "field 'secret_field' is not allowed for sorting",
 		},
 	}
 
@@ -608,31 +608,31 @@ func TestParsePagination(t *testing.T) {
 			name:        "invalid page",
 			queryParams: "page=0",
 			wantError:   true,
-			errorMsg:    "Page must be a positive integer",
+			errorMsg:    "page must be a positive integer",
 		},
 		{
 			name:        "invalid page size",
 			queryParams: "page=1&page_size=150",
 			wantError:   true,
-			errorMsg:    "Page size must be between 1 and 100",
+			errorMsg:    "page size must be between 1 and 100",
 		},
 		{
 			name:        "invalid offset",
 			queryParams: "offset=-5",
 			wantError:   true,
-			errorMsg:    "Offset must be a non-negative integer",
+			errorMsg:    "offset must be a non-negative integer",
 		},
 		{
 			name:        "invalid limit",
 			queryParams: "limit=150",
 			wantError:   true,
-			errorMsg:    "Limit must be between 1 and 100",
+			errorMsg:    "limit must be between 1 and 100",
 		},
 		{
 			name:        "non-numeric page",
 			queryParams: "page=abc",
 			wantError:   true,
-			errorMsg:    "Page must be a positive integer",
+			errorMsg:    "page must be a positive integer",
 		},
 	}
 
