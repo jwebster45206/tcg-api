@@ -18,12 +18,12 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 	query := squirrel.Select(
 		"d.uuid",
 		"d.name",
-		"dt.name as deck_type",
+		"dt.name as type",
 		"d.sleeve_image_url",
 		"d.created_at",
 		"d.updated_at").
 		From("decks d").
-		LeftJoin("deck_types dt ON d.deck_type_id = dt.id").
+		LeftJoin("deck_types dt ON d.type_id = dt.id").
 		PlaceholderFormat(squirrel.Question)
 
 	// Apply mandatory system filters
@@ -71,7 +71,7 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 		err := rows.Scan(
 			&deck.ID,
 			&deck.Name,
-			&deck.DeckType,
+			&deck.Type,
 			&deck.SleeveImageURL,
 			&deck.CreatedAt,
 			&deck.UpdatedAt,
@@ -113,7 +113,7 @@ func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*model
 		deck.ID = uuid.New()
 	}
 
-	deckType := deck.DeckType
+	deckType := deck.Type
 	if deckType == "" {
 		deckType = models.DeckTypeStandard
 	}
@@ -122,13 +122,13 @@ func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*model
 		Columns(
 			"uuid",
 			"name",
-			"deck_type_id",
+			"type_id",
 			"sleeve_image_url",
 		).
 		Values(
 			deck.ID[:], // Convert UUID to bytes
 			deck.Name,
-			squirrel.Select("id").From("deck_types").Where(squirrel.Eq{"name": deckType}),
+			squirrel.Expr("(SELECT id FROM deck_types WHERE name = ?)", deckType),
 			deck.SleeveImageURL,
 		).
 		PlaceholderFormat(squirrel.Question)
@@ -147,34 +147,55 @@ func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*model
 }
 
 func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
-	deckType := deck.DeckType
+	// Get the existing deck to support partial updates
+	existingDeck, err := m.GetDeck(ctx, deck.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing deck: %w", err)
+	}
+
+	// Create a copy and apply only non-empty updates
+	updatedDeck := *existingDeck
+
+	if deck.Name != "" {
+		updatedDeck.Name = deck.Name
+	}
+	if deck.Type != "" {
+		updatedDeck.Type = deck.Type
+	}
+	if deck.SleeveImageURL != nil {
+		updatedDeck.SleeveImageURL = deck.SleeveImageURL
+	}
+
+	// If no actual changes were made, return the existing deck
+	if updatedDeck.Name == existingDeck.Name &&
+		updatedDeck.Type == existingDeck.Type &&
+		((updatedDeck.SleeveImageURL == nil && existingDeck.SleeveImageURL == nil) ||
+			(updatedDeck.SleeveImageURL != nil && existingDeck.SleeveImageURL != nil &&
+				*updatedDeck.SleeveImageURL == *existingDeck.SleeveImageURL)) {
+		return existingDeck, nil
+	}
+
+	deckType := updatedDeck.Type
 	if deckType == "" {
 		deckType = models.DeckTypeStandard
 	}
-	deckTypeSubquery := squirrel.Select("id").From("deck_types").Where(squirrel.Eq{"name": deckType})
 
 	query := squirrel.Update("decks").
 		Where(squirrel.Eq{"uuid": deck.ID[:]}).
-		Set("name", deck.Name).
-		Set("sleeve_image_url", deck.SleeveImageURL).
-		Set("deck_type_id", deckTypeSubquery).
+		Set("name", updatedDeck.Name).
+		Set("sleeve_image_url", updatedDeck.SleeveImageURL).
+		Set("type_id", squirrel.Expr("(SELECT id FROM deck_types WHERE name = ?)", deckType)).
 		PlaceholderFormat(squirrel.Question)
 
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build update query: %w", err)
 	}
-	result, err := m.writerDB.ExecContext(ctx, sql, args...)
+	_, err = m.writerDB.ExecContext(ctx, sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update deck: %w", err)
 	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rows affected: %w", err)
-	}
-	if rowsAffected == 0 {
-		return nil, ErrNotFound
-	}
+
 	return m.GetDeck(ctx, deck.ID)
 }
 
