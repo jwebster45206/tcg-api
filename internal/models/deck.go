@@ -99,7 +99,7 @@ type CardCollectionInput struct {
 // Supports optional card management during deck operations
 type DeckInput struct {
 	Name           string               `json:"name"`
-	DeckType       string               `json:"type"`
+	Type           string               `json:"type"`
 	SleeveImageURL *string              `json:"sleeve_image_url,omitempty"`
 	Cards          *CardCollectionInput `json:"cards,omitempty"` // Optional cards for create/update
 }

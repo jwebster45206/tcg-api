@@ -115,7 +115,7 @@ func TestDecksHandler_CreateDeckWithCards(t *testing.T) {
 
 	deckInput := models.DeckInput{
 		Name:           deckName,
-		DeckType:       deckType,
+		Type:           deckType,
 		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
 		Cards: &models.CardCollectionInput{
 			Items: []models.CardInputWithQuantity{
@@ -392,8 +392,8 @@ func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
 	cardID2 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440003") // Queen of Diamonds
 
 	deckInput := models.DeckInput{
-		Name:     "Updated Deck Name",
-		DeckType: deckType,
+		Name: "Updated Deck Name",
+		Type: deckType,
 		Cards: &models.CardCollectionInput{
 			Items: []models.CardInputWithQuantity{
 				{Card: models.CardInput{ID: cardID1}, Quantity: 1},

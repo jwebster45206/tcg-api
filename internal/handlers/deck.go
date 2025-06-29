@@ -288,7 +288,7 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 	// Convert input to deck model for basic field updates
 	deck := models.Deck{
 		Name:           deckInput.Name,
-		Type:           deckInput.DeckType,
+		Type:           deckInput.Type,
 		SleeveImageURL: deckInput.SleeveImageURL,
 	}
 
@@ -390,7 +390,7 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 	deck := models.Deck{
 		ID:             deckID,
 		Name:           deckInput.Name,
-		Type:           deckInput.DeckType,
+		Type:           deckInput.Type,
 		SleeveImageURL: deckInput.SleeveImageURL,
 	}
 
