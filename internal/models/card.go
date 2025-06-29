@@ -23,16 +23,23 @@ type CardWithQuantityJSON struct {
 }
 
 func (cwq CardWithQuantity) MarshalJSON() ([]byte, error) {
-	// Create a wrapper struct with the card type information
-	cardData := struct {
-		CardInterface
-		CardType string `json:"card_type"`
-	}{
-		CardInterface: cwq.Card,
-		CardType:      cwq.Card.GetCardType(),
+	// Marshal the card directly, then add card_type
+	cardJSON, err := json.Marshal(cwq.Card)
+	if err != nil {
+		return nil, err
 	}
 
-	cardJSON, err := json.Marshal(cardData)
+	// Parse the marshaled card to add card_type
+	var cardMap map[string]interface{}
+	if err := json.Unmarshal(cardJSON, &cardMap); err != nil {
+		return nil, err
+	}
+
+	// Add the card_type field
+	cardMap["card_type"] = cwq.Card.GetCardType()
+
+	// Re-marshal with card_type included
+	cardWithTypeJSON, err := json.Marshal(cardMap)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +48,7 @@ func (cwq CardWithQuantity) MarshalJSON() ([]byte, error) {
 		Card     json.RawMessage `json:"card"`
 		Quantity int             `json:"quantity"`
 	}{
-		Card:     cardJSON,
+		Card:     cardWithTypeJSON,
 		Quantity: cwq.Quantity,
 	}
 

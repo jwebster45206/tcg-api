@@ -308,6 +308,7 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If cards are provided, set them for the new deck
+	cardsProvided := false
 	if deckInput.Cards != nil && len(deckInput.Cards.Items) > 0 {
 		err = h.storage.SetDeckCards(r.Context(), createdDeck.ID, deckInput.Cards.Items)
 		if err != nil {
@@ -318,10 +319,11 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 			// Note: We could consider rolling back the deck creation here, but for now we'll just log the error
 			// The deck exists but without cards - client can retry setting cards later
 		}
+		cardsProvided = true
 	}
 
 	// Check if response should include cards
-	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
+	includeCards := cardsProvided || shouldIncludeCards(r.URL.Query().Get("include"))
 	if includeCards {
 		cards, err := h.storage.ListDeckCards(r.Context(), createdDeck.ID)
 		if err != nil {
@@ -419,6 +421,7 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 	}
 
 	// Handle card updates if provided
+	cardsProvided := false
 	if deckInput.Cards != nil {
 		// Get current deck cards to compare
 		currentCards, err := h.storage.ListDeckCards(r.Context(), deckID)
@@ -453,10 +456,11 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 				return
 			}
 		}
+		cardsProvided = true
 	}
 
 	// Check if response should include cards
-	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
+	includeCards := cardsProvided || shouldIncludeCards(r.URL.Query().Get("include"))
 	if includeCards {
 		cards, err := h.storage.ListDeckCards(r.Context(), deckID)
 		if err != nil {
