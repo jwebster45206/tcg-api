@@ -147,7 +147,6 @@ func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*model
 }
 
 func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
-	// Get the existing deck to support partial updates
 	existingDeck, err := m.GetDeck(ctx, deck.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing deck: %w", err)
@@ -155,7 +154,6 @@ func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*model
 
 	// Create a copy and apply only non-empty updates
 	updatedDeck := *existingDeck
-
 	if deck.Name != "" {
 		updatedDeck.Name = deck.Name
 	}
@@ -164,15 +162,6 @@ func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*model
 	}
 	if deck.SleeveImageURL != nil {
 		updatedDeck.SleeveImageURL = deck.SleeveImageURL
-	}
-
-	// If no actual changes were made, return the existing deck
-	if updatedDeck.Name == existingDeck.Name &&
-		updatedDeck.Type == existingDeck.Type &&
-		((updatedDeck.SleeveImageURL == nil && existingDeck.SleeveImageURL == nil) ||
-			(updatedDeck.SleeveImageURL != nil && existingDeck.SleeveImageURL != nil &&
-				*updatedDeck.SleeveImageURL == *existingDeck.SleeveImageURL)) {
-		return existingDeck, nil
 	}
 
 	deckType := updatedDeck.Type
