@@ -20,20 +20,20 @@ var DeckQueryConfig = query.QueryConfig{
 	AllowedFilters: map[string]string{
 		"id":         "d.uuid",
 		"name":       "d.name",
-		"deck_type":  "dt.name",
+		"type":       "dt.name",
 		"created_at": "d.created_at",
 		"updated_at": "d.updated_at",
 	},
 	AllowedSorts: map[string]string{
 		"name":       "d.name",
-		"deck_type":  "dt.name",
+		"type":       "dt.name",
 		"created_at": "d.created_at",
 		"updated_at": "d.updated_at",
 	},
 	FieldTypes: map[string]query.FieldType{
 		"id":         query.FieldTypeUUID,
 		"name":       query.FieldTypeString,
-		"deck_type":  query.FieldTypeString,
+		"type":       query.FieldTypeString,
 		"created_at": query.FieldTypeDateTime,
 		"updated_at": query.FieldTypeDateTime,
 	},
@@ -43,7 +43,7 @@ var DeckQueryConfig = query.QueryConfig{
 type Deck struct {
 	ID             uuid.UUID       `json:"id"`
 	Name           string          `json:"name"`
-	DeckType       string          `json:"deck_type"`
+	Type           string          `json:"type"`
 	SleeveImageURL *string         `json:"sleeve_image_url,omitempty"`
 	Cards          *CardCollection `json:"cards,omitempty"` // Only when ?include=cards
 	CreatedAt      time.Time       `json:"created_at"`
@@ -99,7 +99,7 @@ type CardCollectionInput struct {
 // Supports optional card management during deck operations
 type DeckInput struct {
 	Name           string               `json:"name"`
-	DeckType       string               `json:"deck_type"`
+	Type           string               `json:"type"`
 	SleeveImageURL *string              `json:"sleeve_image_url,omitempty"`
 	Cards          *CardCollectionInput `json:"cards,omitempty"` // Optional cards for create/update
 }

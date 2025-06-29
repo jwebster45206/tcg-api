@@ -3,55 +3,56 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 
 ## Technical Stack
 - **Language**: Go
-- **Storage**: MySQL and Redis (TODO)
+- **Storage**: MySQL (Redis TODO)
 
-## Core Features
+## Features
 
 ### Card Management
-- Card creation, reading, updating, and deletion (CRUD operations) ✅
-- Card attributes for pre-defined types: image-card ✅, playing-card, and game-card
-- Interface-based design for handling cards of different types ✅
-- Input validation and error handling ✅
-- Query filtering, sorting, and pagination ✅
+- Card creation, reading, updating, and deletion (CRUD operations) 
+- Card attributes for pre-defined types
+- Interface-based design for handling cards of different types
+- Input validation and error handling
+- Query filtering, sorting, and pagination
 
 ### Deck Management
-- Deck creation and management (TODO)
+- Deck creation and management
 - Deck state management (TODO)
 
-## Architecture Design
+## Resource Design
 
-### Card Interface System
-The API uses an interface-driven approach to support multiple card types:
+### Cards 
+Cards are structs that implement CardInterface. This allows a deck to contain >1 card type, and allows game designers to use multiple card types. 
 
-- **CardInterface**: Base contract that all card types implement
-  - `GetID()`, `GetName()`, `GetFrontImageURL()`, `GetBackImageURL()`, `GetCardType()`
+#### CardInterface**
+Base contract that all card types implement
+- `GetID()`
+- `GetName()`
+- `GetFrontImageURL()`
+- `GetBackImageURL()`
+- `GetCardType()`
 
-### Card Type Implementations
+#### Implementations
 - **ImageCard**: Simple cards with just imagery and basic info (name, description, images) ✅
+- **PlayingCard**: Standard playing cards (suit, value, images) ✅
 - **GameCard**: TCG-specific cards with game mechanics (cost, offense, defense, keywords, colors) - *Partial*
-- **PlayingCard**: Standard playing cards (suit, value, images) - *Partial*
 
-### Deck Type Implementation (TODO)
-- Array of cards (unsorted) by identifier and type
-- Name of deck
-- Owner of deck (can be nil)
-- Sleeve/Back image URL (can be nil)
-- Deck accepts cards of any type implementing CardInterface
+### Decks
+A deck is an ordered collection of structs that implement a basic card interface. Deck and card interfaces should be agnostic of game mechanics. If a mechanic is specific to a game and not widely applicable to most decks of cards, it does not belong in the deck api. 
 
 ## API Endpoints
-- `/image-cards` - ImageCard resource management (CRUD operations) ✅
-- `/game-cards` - GameCard resource management (partial implementation)
-- `/decks` - Deck management (TODO)
-- Playing card endpoints (TODO)
-- Deck operations: shuffle and draw (TODO)
+- `/v1/image-cards` - Management for the simplest base card type ✅
+- `/v1/playing-cards` - Management for traditional playing cards ✅
+- `/v1/game-cards` - TCG card management - partial/demo implementation
+- `/v1/decks` - Deck management ✅
+- Deck state / deck operations: TODO
 
-## Security
+## Security (TODO)
 
-### Authentication (TODO)
+### Authentication 
 1. JWT (JSON Web Tokens) for stateless authentication
 2. Rate limiting per API key/user
 
 ### Authorization
-1. Role-based access control (RBAC)
+1. Role-based access control
    - Admin roles for card management
    - Player roles for deck management and simulation
