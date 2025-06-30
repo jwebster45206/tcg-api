@@ -63,8 +63,6 @@ CREATE TABLE deck_cards (
     FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
 );
 
--- TODO: Add game_cards table
-
 CREATE INDEX idx_cards_uuid ON cards(uuid);
 CREATE INDEX idx_cards_type_id ON cards(card_type_id);
 CREATE INDEX idx_cards_created_at ON cards(created_at);
