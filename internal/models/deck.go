@@ -9,7 +9,7 @@ import (
 )
 
 // DeckType constants for different types of decks
-// matches db seeds for card types
+// matches db seeds for deck types
 const (
 	DeckTypeStandard    = "standard"
 	DeckTypePlayingCard = "playing-card"

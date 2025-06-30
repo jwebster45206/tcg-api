@@ -23,18 +23,17 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 ### Cards 
 Cards are structs that implement CardInterface. This allows a deck to contain >1 card type, and allows game designers to use multiple card types. 
 
-#### CardInterface**
-Base contract that all card types implement
+All card types must implement `CardInterface`:
 - `GetID()`
 - `GetName()`
 - `GetFrontImageURL()`
 - `GetBackImageURL()`
 - `GetCardType()`
 
-#### Implementations
+Card Types are designed to be extensible. The following types are available currently:
 - **ImageCard**: Simple cards with just imagery and basic info (name, description, images) ✅
 - **PlayingCard**: Standard playing cards (suit, value, images) ✅
-- **GameCard**: TCG-specific cards with game mechanics (cost, offense, defense, keywords, colors) - *Partial*
+- **GameCard**: Generic TCG card for demo (partial implementation)
 
 ### Decks
 A deck is an ordered collection of structs that implement a basic card interface. Deck and card interfaces should be agnostic of game mechanics. If a mechanic is specific to a game and not widely applicable to most decks of cards, it does not belong in the deck api. 
@@ -42,9 +41,9 @@ A deck is an ordered collection of structs that implement a basic card interface
 ## API Endpoints
 - `/v1/image-cards` - Management for the simplest base card type ✅
 - `/v1/playing-cards` - Management for traditional playing cards ✅
-- `/v1/game-cards` - TCG card management - partial/demo implementation
+- `/v1/game-cards` - Generic TCG card management (partial implementation)
 - `/v1/decks` - Deck management ✅
-- Deck state / deck operations: TODO
+- `/v1/deck-states` - Deck state / deck operations: TODO
 
 ## Security (TODO)
 

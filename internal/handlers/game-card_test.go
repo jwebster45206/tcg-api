@@ -118,15 +118,16 @@ func TestGameCardsHandler_GetCard_InvalidID(t *testing.T) {
 
 func TestGameCardsHandler_CreateCard(t *testing.T) {
 	cardReq := models.GameCard{
-		Name:       "Test Card",
-		Subtitle:   "A test card",
-		Cost:       3,
-		Type:       "Creature",
-		Offense:    2,
-		Defense:    3,
-		Keywords:   []string{"Flying"},
-		Colors:     []string{"Blue"},
-		IsResource: false,
+		Name:        "Test Card",
+		Description: "A test card",
+		ManaCost:    3,
+		CardType:    "creature",
+		Attack:      2,
+		Health:      3,
+		Keywords:    []string{"flying"},
+		Colors:      []string{"blue"},
+		Rarity:      "common",
+		SetCode:     "TEST",
 	}
 
 	jsonBody, _ := json.Marshal(cardReq)
@@ -197,8 +198,8 @@ func TestGameCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 
 func TestGameCardsHandler_UpdateCard(t *testing.T) {
 	cardReq := models.GameCard{
-		Name: "Original Card",
-		Type: "Creature",
+		Name:     "Original Card",
+		CardType: "creature",
 	}
 
 	mockStorage := storage.NewMockStorage()
@@ -214,8 +215,8 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 
 	// Now update it
 	updateReq := models.GameCard{
-		Name: "Updated Card",
-		Type: "Instant",
+		Name:     "Updated Card",
+		CardType: "spell",
 	}
 
 	jsonBody, _ := json.Marshal(updateReq)
@@ -284,8 +285,8 @@ func TestGameCardsHandler_UpdateCard_NotFound(t *testing.T) {
 
 func TestGameCardsHandler_DeleteCard(t *testing.T) {
 	cardReq := models.GameCard{
-		Name: "Card to Delete",
-		Type: "Creature",
+		Name:     "Card to Delete",
+		CardType: "creature",
 	}
 
 	mockStorage := storage.NewMockStorage()
