@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -74,7 +74,7 @@ func (h *DecksHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // listDecks handles GET /decks with filtering, sorting, and pagination
 func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 	// Parse filters
-	filters, err := ParseFilters(r, models.DeckQueryConfig)
+	filters, err := ParseFilters(r, deckdef.DeckQueryConfig)
 	if err != nil {
 		h.logger.Error("Failed to parse filters",
 			slog.String("operation", "parse_filters"),
@@ -88,7 +88,7 @@ func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sorts, err := ParseSorts(r, models.DeckQueryConfig)
+	sorts, err := ParseSorts(r, deckdef.DeckQueryConfig)
 	if err != nil {
 		h.logger.Error("Failed to parse sorts",
 			slog.String("operation", "parse_sorts"),
@@ -170,10 +170,10 @@ func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 				totalCount += cardWithQuantity.Quantity
 			}
 
-			cardCollection := &models.CardCollection{
+			cardCollection := &deckdef.CardCollection{
 				TotalCount:  totalCount,
 				UniqueCount: len(cards),
-				Items:       make([]models.CardWithQuantity, len(cards)),
+				Items:       make([]deckdef.CardWithQuantity, len(cards)),
 			}
 
 			// Convert from pointers to values for the response
@@ -247,10 +247,10 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 			totalCount += cardWithQuantity.Quantity
 		}
 
-		cardCollection := &models.CardCollection{
+		cardCollection := &deckdef.CardCollection{
 			TotalCount:  totalCount,
 			UniqueCount: len(cards),
-			Items:       make([]models.CardWithQuantity, len(cards)),
+			Items:       make([]deckdef.CardWithQuantity, len(cards)),
 		}
 
 		// Convert from pointers to values for the response
@@ -265,7 +265,7 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 
 // createDeck handles POST /decks
 func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
-	var deckInput models.DeckInput
+	var deckInput deckdef.DeckInput
 	if err := json.NewDecoder(r.Body).Decode(&deckInput); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
@@ -286,7 +286,7 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert input to deck model for basic field updates
-	deck := models.Deck{
+	deck := deckdef.Deck{
 		Name:           deckInput.Name,
 		Type:           deckInput.Type,
 		SleeveImageURL: deckInput.SleeveImageURL,
@@ -338,10 +338,10 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 				totalCount += cardWithQuantity.Quantity
 			}
 
-			cardCollection := &models.CardCollection{
+			cardCollection := &deckdef.CardCollection{
 				TotalCount:  totalCount,
 				UniqueCount: len(cards),
-				Items:       make([]models.CardWithQuantity, len(cards)),
+				Items:       make([]deckdef.CardWithQuantity, len(cards)),
 			}
 
 			// Convert from pointers to values for the response
@@ -368,7 +368,7 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 	}
 
 	// Parse request body
-	var deckInput models.DeckInput
+	var deckInput deckdef.DeckInput
 	if err := json.NewDecoder(r.Body).Decode(&deckInput); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
@@ -389,7 +389,7 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 	}
 
 	// Convert input to deck model for basic field updates
-	deck := models.Deck{
+	deck := deckdef.Deck{
 		ID:             deckID,
 		Name:           deckInput.Name,
 		Type:           deckInput.Type,
@@ -475,10 +475,10 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 				totalCount += cardWithQuantity.Quantity
 			}
 
-			cardCollection := &models.CardCollection{
+			cardCollection := &deckdef.CardCollection{
 				TotalCount:  totalCount,
 				UniqueCount: len(cards),
-				Items:       make([]models.CardWithQuantity, len(cards)),
+				Items:       make([]deckdef.CardWithQuantity, len(cards)),
 			}
 
 			// Convert from pointers to values for the response

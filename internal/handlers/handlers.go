@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
@@ -292,7 +292,7 @@ func convertFilterValue(value string, fieldType query.FieldType) (interface{}, e
 
 // deckCardsChangedFromInput compares current deck cards with a new card collection input to determine if they've changed
 // Returns true if the cards are different (different cards, quantities, or order)
-func deckCardsChangedFromInput(current []*models.CardWithQuantity, newCollection *models.CardCollectionInput) bool {
+func deckCardsChangedFromInput(current []*deckdef.CardWithQuantity, newCollection *deckdef.CardCollectionInput) bool {
 	// If both are empty, no change
 	if (len(current) == 0) && (newCollection == nil || len(newCollection.Items) == 0) {
 		return false

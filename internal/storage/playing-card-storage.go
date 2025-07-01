@@ -7,11 +7,11 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
-func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.PlayingCard, error) {
+func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.PlayingCard, error) {
 	// Start building the query with joins
 	queryBuilder := squirrel.Select(
 		"c.uuid",
@@ -33,12 +33,12 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		Where(squirrel.Eq{"c.deleted": false})   // Only non-deleted records
 
 	for _, filter := range filters {
-		if validatedQuery, ok := m.applyValidatedFilter(queryBuilder, filter, models.PlayingCardQueryConfig); ok {
+		if validatedQuery, ok := m.applyValidatedFilter(queryBuilder, filter, deckdef.PlayingCardQueryConfig); ok {
 			queryBuilder = validatedQuery
 		}
 	}
 	for _, sort := range sorts {
-		if validatedQuery, ok := m.applyValidatedSort(queryBuilder, sort, models.PlayingCardQueryConfig); ok {
+		if validatedQuery, ok := m.applyValidatedSort(queryBuilder, sort, deckdef.PlayingCardQueryConfig); ok {
 			queryBuilder = validatedQuery
 		}
 	}
@@ -61,7 +61,7 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 	}
 	defer rows.Close()
 
-	var playingCards []*models.PlayingCard
+	var playingCards []*deckdef.PlayingCard
 	for rows.Next() {
 		var uuidBytes []byte
 		var name, suit string
@@ -89,7 +89,7 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 			return nil, fmt.Errorf("failed to parse UUID: %w", err)
 		}
 
-		playingCard := &models.PlayingCard{
+		playingCard := &deckdef.PlayingCard{
 			ID:            cardUUID,
 			Name:          name,
 			Description:   safeString(description),
@@ -109,7 +109,7 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 	return playingCards, nil
 }
 
-func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error) {
+func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*deckdef.PlayingCard, error) {
 	filters := []query.Filter{
 		{
 			Column:   "id",
@@ -128,7 +128,7 @@ func (m *MySQLStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*model
 	return cards[0], nil
 }
 
-func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
+func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error) {
 	if card.ID == uuid.Nil {
 		card.ID = uuid.New()
 	}
@@ -158,7 +158,7 @@ func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card models.Playin
 			card.Description,
 			card.FrontImageURL,
 			card.BackImageURL,
-			models.TypePlayingCardID,
+			deckdef.TypePlayingCardID,
 		).
 		PlaceholderFormat(squirrel.Question)
 
@@ -205,7 +205,7 @@ func (m *MySQLStorage) CreatePlayingCard(ctx context.Context, card models.Playin
 	return m.GetPlayingCard(ctx, card.ID)
 }
 
-func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
+func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error) {
 	if card.ID == uuid.Nil {
 		return nil, fmt.Errorf("card ID cannot be nil")
 	}
@@ -226,7 +226,7 @@ func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card models.Playin
 		Set("front_image_url", card.FrontImageURL).
 		Set("back_image_url", card.BackImageURL).
 		Where(squirrel.Eq{"uuid": card.ID[:]}).
-		Where(squirrel.Eq{"card_type_id": models.TypePlayingCardID}).
+		Where(squirrel.Eq{"card_type_id": deckdef.TypePlayingCardID}).
 		Where(squirrel.Eq{"deleted": false}).
 		PlaceholderFormat(squirrel.Question)
 
@@ -251,7 +251,7 @@ func (m *MySQLStorage) UpdatePlayingCard(ctx context.Context, card models.Playin
 		Set("suit", card.Suit).
 		Set("ranking", card.Ranking).
 		Where("card_id = (SELECT id FROM cards WHERE uuid = ? AND card_type_id = ? AND deleted = false)",
-			card.ID[:], models.TypePlayingCardID).
+			card.ID[:], deckdef.TypePlayingCardID).
 		PlaceholderFormat(squirrel.Question)
 
 	playingCardSQL, playingCardArgs, err := playingCardQuery.ToSql()
@@ -274,7 +274,7 @@ func (m *MySQLStorage) DeletePlayingCard(ctx context.Context, id uuid.UUID) erro
 	query := squirrel.Update("cards").
 		Set("deleted", true).
 		Where(squirrel.Eq{"uuid": id[:]}).
-		Where(squirrel.Eq{"card_type_id": models.TypePlayingCardID}).
+		Where(squirrel.Eq{"card_type_id": deckdef.TypePlayingCardID}).
 		Where(squirrel.Eq{"deleted": false}).
 		PlaceholderFormat(squirrel.Question)
 

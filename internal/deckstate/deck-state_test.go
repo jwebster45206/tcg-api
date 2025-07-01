@@ -1,15 +1,16 @@
-package models
+package deckstate
 
 import (
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 )
 
 func TestNewDeckState(t *testing.T) {
 	// Create sample ImageCards matching the ones from seeds.sql
-	dragonCard := &ImageCard{
+	dragonCard := &deckdef.ImageCard{
 		ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 		Name:          "Dragon Artwork",
 		Description:   "Beautiful dragon illustration card",
@@ -19,7 +20,7 @@ func TestNewDeckState(t *testing.T) {
 		UpdatedAt:     time.Now(),
 	}
 
-	castleCard := &ImageCard{
+	castleCard := &deckdef.ImageCard{
 		ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
 		Name:          "Castle Scene",
 		Description:   "Medieval castle landscape artwork",
@@ -29,7 +30,7 @@ func TestNewDeckState(t *testing.T) {
 		UpdatedAt:     time.Now(),
 	}
 
-	phoenixCard := &ImageCard{
+	phoenixCard := &deckdef.ImageCard{
 		ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440003"),
 		Name:          "Phoenix Rising",
 		Description:   "Majestic phoenix in flames",
@@ -41,16 +42,16 @@ func TestNewDeckState(t *testing.T) {
 
 	// Create a deck with these cards
 	deckID := uuid.New()
-	deck := Deck{
+	deck := deckdef.Deck{
 		ID:        deckID,
 		Name:      "Test Deck",
 		Type:      "standard",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Cards: &CardCollection{
+		Cards: &deckdef.CardCollection{
 			TotalCount:  5, // 2 dragons + 1 castle + 2 phoenix = 5 total
 			UniqueCount: 3, // 3 different cards
-			Items: []CardWithQuantity{
+			Items: []deckdef.CardWithQuantity{
 				{Card: dragonCard, Quantity: 2},  // 2 dragon cards
 				{Card: castleCard, Quantity: 1},  // 1 castle card
 				{Card: phoenixCard, Quantity: 2}, // 2 phoenix cards
@@ -193,7 +194,7 @@ func TestNewDeckState(t *testing.T) {
 func TestNewDeckState_EmptyDeck(t *testing.T) {
 	// Test with a deck that has no cards
 	deckID := uuid.New()
-	deck := Deck{
+	deck := deckdef.Deck{
 		ID:        deckID,
 		Name:      "Empty Deck",
 		Type:      "standard",

@@ -8,12 +8,12 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 // ImageCard operations
-func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
+func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.ImageCard, error) {
 	// Start building the query
 	query := squirrel.Select(
 		"uuid",
@@ -28,12 +28,12 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 
 	// Apply mandatory system filters
 	query = query.
-		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}). // Filter by card type
-		Where(squirrel.Eq{"deleted": false})                        // Only non-deleted records
+		Where(squirrel.Eq{"card_type_id": deckdef.TypeImageCardID}). // Filter by card type
+		Where(squirrel.Eq{"deleted": false})                         // Only non-deleted records
 
 	// User filters
 	for _, filter := range filters {
-		if validatedQuery, ok := m.applyValidatedFilter(query, filter, models.ImageCardQueryConfig); ok {
+		if validatedQuery, ok := m.applyValidatedFilter(query, filter, deckdef.ImageCardQueryConfig); ok {
 			query = validatedQuery
 		}
 		// Silently skip invalid filters
@@ -41,7 +41,7 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 
 	// Apply sorting
 	for _, sort := range sorts {
-		if validatedQuery, ok := m.applyValidatedSort(query, sort, models.ImageCardQueryConfig); ok {
+		if validatedQuery, ok := m.applyValidatedSort(query, sort, deckdef.ImageCardQueryConfig); ok {
 			query = validatedQuery
 		}
 		// Silently skip invalid sorts
@@ -66,7 +66,7 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 	}
 	defer rows.Close()
 
-	var imageCards []*models.ImageCard
+	var imageCards []*deckdef.ImageCard
 	for rows.Next() {
 		var uuidBytes []byte
 		var name string
@@ -91,7 +91,7 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 			return nil, fmt.Errorf("failed to parse UUID: %w", err)
 		}
 
-		imageCard := &models.ImageCard{
+		imageCard := &deckdef.ImageCard{
 			ID:            cardUUID,
 			Name:          name,
 			Description:   safeString(description),
@@ -109,7 +109,7 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 	return imageCards, nil
 }
 
-func (m *MySQLStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error) {
+func (m *MySQLStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*deckdef.ImageCard, error) {
 	filters := []query.Filter{
 		{
 			Column:   "id",
@@ -128,7 +128,7 @@ func (m *MySQLStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.
 	return cards[0], nil
 }
 
-func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
+func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard deckdef.ImageCard) (*deckdef.ImageCard, error) {
 	// Generate UUID if not provided
 	if imageCard.ID == uuid.Nil {
 		imageCard.ID = uuid.New()
@@ -151,7 +151,7 @@ func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.Ima
 			imageCard.Description,
 			imageCard.FrontImageURL,
 			imageCard.BackImageURL,
-			models.TypeImageCardID,
+			deckdef.TypeImageCardID,
 			false,
 		).
 		PlaceholderFormat(squirrel.Question)
@@ -170,7 +170,7 @@ func (m *MySQLStorage) CreateImageCard(ctx context.Context, imageCard models.Ima
 	return m.GetImageCard(ctx, imageCard.ID)
 }
 
-func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
+func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard deckdef.ImageCard) (*deckdef.ImageCard, error) {
 	// Start a transaction for data consistency
 	tx, err := m.writerDB.BeginTx(ctx, nil)
 	if err != nil {
@@ -190,7 +190,7 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 	checkQuery := squirrel.Select("1").
 		From("cards").
 		Where(squirrel.Eq{"uuid": imageCard.ID[:]}).
-		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"card_type_id": deckdef.TypeImageCardID}).
 		Where(squirrel.Eq{"deleted": false}).
 		PlaceholderFormat(squirrel.Question)
 
@@ -211,7 +211,7 @@ func (m *MySQLStorage) UpdateImageCard(ctx context.Context, imageCard models.Ima
 		Set("front_image_url", imageCard.FrontImageURL).
 		Set("back_image_url", imageCard.BackImageURL).
 		Where(squirrel.Eq{"uuid": imageCard.ID[:]}).
-		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"card_type_id": deckdef.TypeImageCardID}).
 		Where(squirrel.Eq{"deleted": false}).
 		PlaceholderFormat(squirrel.Question)
 
@@ -248,7 +248,7 @@ func (m *MySQLStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error 
 	query := squirrel.Update("cards").
 		Set("deleted", true).
 		Where(squirrel.Eq{"uuid": id[:]}).
-		Where(squirrel.Eq{"card_type_id": models.TypeImageCardID}).
+		Where(squirrel.Eq{"card_type_id": deckdef.TypeImageCardID}).
 		Where(squirrel.Eq{"deleted": false}).
 		PlaceholderFormat(squirrel.Question)
 

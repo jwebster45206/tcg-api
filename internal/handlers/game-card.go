@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -123,7 +123,7 @@ func (h *GameCardsHandler) getCard(w http.ResponseWriter, r *http.Request, cardI
 
 // createCard handles POST /game-cards
 func (h *GameCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
-	var card models.GameCard
+	var card deckdef.GameCard
 
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
@@ -165,7 +165,7 @@ func (h *GameCardsHandler) updateCard(w http.ResponseWriter, r *http.Request, ca
 		return
 	}
 
-	var card models.GameCard
+	var card deckdef.GameCard
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,

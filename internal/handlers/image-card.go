@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -74,7 +74,7 @@ func (h *ImageCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	filters, err := ParseFilters(r, models.ImageCardQueryConfig)
+	filters, err := ParseFilters(r, deckdef.ImageCardQueryConfig)
 	if err != nil {
 		h.logger.Error("Failed to parse filters",
 			slog.String("operation", "parse_filters"),
@@ -89,7 +89,7 @@ func (h *ImageCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse sorts from query parameters
-	sorts, err := ParseSorts(r, models.ImageCardQueryConfig)
+	sorts, err := ParseSorts(r, deckdef.ImageCardQueryConfig)
 	if err != nil {
 		h.logger.Error("Failed to parse sorts",
 			slog.String("operation", "parse_sorts"),
@@ -171,7 +171,7 @@ func (h *ImageCardsHandler) getCard(w http.ResponseWriter, r *http.Request, card
 
 // createCard handles POST /image-cards
 func (h *ImageCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
-	var card models.ImageCard
+	var card deckdef.ImageCard
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,

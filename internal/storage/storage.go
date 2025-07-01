@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
@@ -13,33 +13,33 @@ type Storage interface {
 	Ping(ctx context.Context) error
 
 	// Deck operations
-	ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.Deck, error)
-	GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error)
-	CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
-	UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error)
+	ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.Deck, error)
+	GetDeck(ctx context.Context, id uuid.UUID) (*deckdef.Deck, error)
+	CreateDeck(ctx context.Context, deck deckdef.Deck) (*deckdef.Deck, error)
+	UpdateDeck(ctx context.Context, deck deckdef.Deck) (*deckdef.Deck, error)
 	DeleteDeck(ctx context.Context, id uuid.UUID) error
-	ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error)
-	SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardInputWithQuantity) error
+	ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*deckdef.CardWithQuantity, error)
+	SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []deckdef.CardInputWithQuantity) error
 
 	// ImageCard operations
-	ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error)
-	GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error)
-	CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
-	UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error)
+	ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.ImageCard, error)
+	GetImageCard(ctx context.Context, id uuid.UUID) (*deckdef.ImageCard, error)
+	CreateImageCard(ctx context.Context, imageCard deckdef.ImageCard) (*deckdef.ImageCard, error)
+	UpdateImageCard(ctx context.Context, imageCard deckdef.ImageCard) (*deckdef.ImageCard, error)
 	DeleteImageCard(ctx context.Context, id uuid.UUID) error
 
 	// PlayingCard operations
-	ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.PlayingCard, error)
-	GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error)
-	CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error)
-	UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error)
+	ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.PlayingCard, error)
+	GetPlayingCard(ctx context.Context, id uuid.UUID) (*deckdef.PlayingCard, error)
+	CreatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error)
+	UpdatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error)
 	DeletePlayingCard(ctx context.Context, id uuid.UUID) error
 
 	// GameCard operations
-	ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error)
-	GetGameCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error)
-	CreateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error)
-	UpdateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error)
+	ListGameCards(ctx context.Context, cardType string) ([]*deckdef.GameCard, error)
+	GetGameCard(ctx context.Context, id uuid.UUID) (*deckdef.GameCard, error)
+	CreateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error)
+	UpdateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error)
 	DeleteGameCard(ctx context.Context, id uuid.UUID) error
 
 	// TODO: DeckState operations for future gameplay mechanics

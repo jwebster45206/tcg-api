@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -74,7 +74,7 @@ func (h *PlayingCardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	filters, err := ParseFilters(r, models.PlayingCardQueryConfig)
+	filters, err := ParseFilters(r, deckdef.PlayingCardQueryConfig)
 	if err != nil {
 		h.logger.Error("Failed to parse filters",
 			slog.String("operation", "parse_filters"),
@@ -88,7 +88,7 @@ func (h *PlayingCardsHandler) listCards(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	sorts, err := ParseSorts(r, models.PlayingCardQueryConfig)
+	sorts, err := ParseSorts(r, deckdef.PlayingCardQueryConfig)
 	if err != nil {
 		h.logger.Error("Failed to parse sorts",
 			slog.String("operation", "parse_sorts"),
@@ -167,7 +167,7 @@ func (h *PlayingCardsHandler) getCard(w http.ResponseWriter, r *http.Request, ca
 
 // createCard handles POST /playing-cards
 func (h *PlayingCardsHandler) createCard(w http.ResponseWriter, r *http.Request) {
-	var card models.PlayingCard
+	var card deckdef.PlayingCard
 
 	if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
 		response := ErrorResponse{
@@ -239,7 +239,7 @@ func (h *PlayingCardsHandler) updateCard(w http.ResponseWriter, r *http.Request,
 
 	// For PATCH, decode partial updates onto existing card
 	// For PUT, decode complete replacement
-	var updateCard models.PlayingCard
+	var updateCard deckdef.PlayingCard
 	if r.Method == http.MethodPatch {
 		// Start with existing card data
 		updateCard = *existingCard
