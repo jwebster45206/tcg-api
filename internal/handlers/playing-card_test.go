@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -108,8 +108,8 @@ func TestPlayingCardsHandler_GetCard_InvalidID(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_CreateCard(t *testing.T) {
-	cardReq := models.PlayingCard{
-		Suit:          models.SuitHearts,
+	cardReq := deckdef.PlayingCard{
+		Suit:          deckdef.SuitHearts,
 		Ranking:       1, // Ace
 		FrontImageURL: "https://example.com/ace_hearts_front.png",
 		BackImageURL:  "https://example.com/card_back.png",
@@ -136,7 +136,7 @@ func TestPlayingCardsHandler_CreateCard(t *testing.T) {
 			status, http.StatusCreated)
 	}
 
-	var createdCard models.PlayingCard
+	var createdCard deckdef.PlayingCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &createdCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -187,8 +187,8 @@ func TestPlayingCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 
 func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 	// Test with invalid ranking (out of range)
-	cardReq := models.PlayingCard{
-		Suit:          models.SuitHearts,
+	cardReq := deckdef.PlayingCard{
+		Suit:          deckdef.SuitHearts,
 		Ranking:       15, // Invalid - should be 1-13
 		FrontImageURL: "https://example.com/front.png",
 		BackImageURL:  "https://example.com/back.png",
@@ -226,8 +226,8 @@ func TestPlayingCardsHandler_CreateCard_InvalidCard(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
-	cardReq := models.PlayingCard{
-		Suit:    models.SuitSpades,
+	cardReq := deckdef.PlayingCard{
+		Suit:    deckdef.SuitSpades,
 		Ranking: 10,
 	}
 
@@ -243,8 +243,8 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	// Now update it
-	updateReq := models.PlayingCard{
-		Suit:          models.SuitDiamonds,
+	updateReq := deckdef.PlayingCard{
+		Suit:          deckdef.SuitDiamonds,
 		Ranking:       5,
 		FrontImageURL: "https://example.com/updated_front.png",
 		BackImageURL:  "https://example.com/updated_back.png",
@@ -267,7 +267,7 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var updatedCard models.PlayingCard
+	var updatedCard deckdef.PlayingCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &updatedCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -283,8 +283,8 @@ func TestPlayingCardsHandler_UpdateCard(t *testing.T) {
 
 func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
-	updateReq := models.PlayingCard{
-		Suit:    models.SuitClubs,
+	updateReq := deckdef.PlayingCard{
+		Suit:    deckdef.SuitClubs,
 		Ranking: 7,
 	}
 
@@ -321,8 +321,8 @@ func TestPlayingCardsHandler_UpdateCard_NotFound(t *testing.T) {
 
 func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	// First create a valid card
-	cardReq := models.PlayingCard{
-		Suit:    models.SuitHearts,
+	cardReq := deckdef.PlayingCard{
+		Suit:    deckdef.SuitHearts,
 		Ranking: 5,
 	}
 
@@ -338,7 +338,7 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 	}
 
 	// Now try to update it with invalid data
-	updateReq := models.PlayingCard{
+	updateReq := deckdef.PlayingCard{
 		ID:      cardReq.ID,     // Use the same ID as the created card
 		Suit:    "invalid_suit", // Invalid suit
 		Ranking: 5,
@@ -374,8 +374,8 @@ func TestPlayingCardsHandler_UpdateCard_InvalidCard(t *testing.T) {
 }
 
 func TestPlayingCardsHandler_DeleteCard(t *testing.T) {
-	cardReq := models.PlayingCard{
-		Suit:    models.SuitHearts,
+	cardReq := deckdef.PlayingCard{
+		Suit:    deckdef.SuitHearts,
 		Ranking: 12, // Queen
 	}
 

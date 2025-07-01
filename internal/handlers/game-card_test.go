@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -117,7 +117,7 @@ func TestGameCardsHandler_GetCard_InvalidID(t *testing.T) {
 }
 
 func TestGameCardsHandler_CreateCard(t *testing.T) {
-	cardReq := models.GameCard{
+	cardReq := deckdef.GameCard{
 		Name:        "Test Card",
 		Description: "A test card",
 		ManaCost:    3,
@@ -151,7 +151,7 @@ func TestGameCardsHandler_CreateCard(t *testing.T) {
 			status, http.StatusCreated)
 	}
 
-	var createdCard models.GameCard
+	var createdCard deckdef.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &createdCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestGameCardsHandler_CreateCard_InvalidJSON(t *testing.T) {
 }
 
 func TestGameCardsHandler_UpdateCard(t *testing.T) {
-	cardReq := models.GameCard{
+	cardReq := deckdef.GameCard{
 		Name:     "Original Card",
 		CardType: "creature",
 	}
@@ -214,7 +214,7 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	// Now update it
-	updateReq := models.GameCard{
+	updateReq := deckdef.GameCard{
 		Name:     "Updated Card",
 		CardType: "spell",
 	}
@@ -236,7 +236,7 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var updatedCard models.GameCard
+	var updatedCard deckdef.GameCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &updatedCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -248,7 +248,7 @@ func TestGameCardsHandler_UpdateCard(t *testing.T) {
 
 func TestGameCardsHandler_UpdateCard_NotFound(t *testing.T) {
 	cardID := uuid.New().String()
-	updateReq := models.GameCard{
+	updateReq := deckdef.GameCard{
 		Name: "Updated Card",
 	}
 
@@ -284,7 +284,7 @@ func TestGameCardsHandler_UpdateCard_NotFound(t *testing.T) {
 }
 
 func TestGameCardsHandler_DeleteCard(t *testing.T) {
-	cardReq := models.GameCard{
+	cardReq := deckdef.GameCard{
 		Name:     "Card to Delete",
 		CardType: "creature",
 	}

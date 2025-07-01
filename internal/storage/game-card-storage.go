@@ -5,23 +5,23 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 )
 
 // GameCard operations - stubs
-func (m *MySQLStorage) ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error) {
+func (m *MySQLStorage) ListGameCards(ctx context.Context, cardType string) ([]*deckdef.GameCard, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *MySQLStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error) {
+func (m *MySQLStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*deckdef.GameCard, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *MySQLStorage) CreateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error) {
+func (m *MySQLStorage) CreateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (m *MySQLStorage) UpdateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error) {
+func (m *MySQLStorage) UpdateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 

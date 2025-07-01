@@ -8,12 +8,12 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
 // Deck operations
-func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.Deck, error) {
+func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.Deck, error) {
 	// Start building the query with JOIN to get deck type name
 	query := squirrel.Select(
 		"d.uuid",
@@ -31,7 +31,7 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 
 	// User filters
 	for _, filter := range filters {
-		if validatedQuery, ok := m.applyValidatedFilter(query, filter, models.DeckQueryConfig); ok {
+		if validatedQuery, ok := m.applyValidatedFilter(query, filter, deckdef.DeckQueryConfig); ok {
 			query = validatedQuery
 		}
 		// Silently skip invalid filters
@@ -39,7 +39,7 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 
 	// Apply sorting
 	for _, sort := range sorts {
-		if validatedQuery, ok := m.applyValidatedSort(query, sort, models.DeckQueryConfig); ok {
+		if validatedQuery, ok := m.applyValidatedSort(query, sort, deckdef.DeckQueryConfig); ok {
 			query = validatedQuery
 		}
 		// Silently skip invalid sorts
@@ -65,9 +65,9 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 	}
 	defer rows.Close()
 
-	var decks []*models.Deck
+	var decks []*deckdef.Deck
 	for rows.Next() {
-		deck := &models.Deck{}
+		deck := &deckdef.Deck{}
 		err := rows.Scan(
 			&deck.ID,
 			&deck.Name,
@@ -89,7 +89,7 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 	return decks, nil
 }
 
-func (m *MySQLStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error) {
+func (m *MySQLStorage) GetDeck(ctx context.Context, id uuid.UUID) (*deckdef.Deck, error) {
 	filters := []query.Filter{
 		{
 			Column:   "id",
@@ -108,14 +108,14 @@ func (m *MySQLStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck,
 	return decks[0], nil
 }
 
-func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
+func (m *MySQLStorage) CreateDeck(ctx context.Context, deck deckdef.Deck) (*deckdef.Deck, error) {
 	if deck.ID == uuid.Nil {
 		deck.ID = uuid.New()
 	}
 
 	deckType := deck.Type
 	if deckType == "" {
-		deckType = models.DeckTypeStandard
+		deckType = deckdef.DeckTypeStandard
 	}
 
 	query := squirrel.Insert("decks").
@@ -146,7 +146,7 @@ func (m *MySQLStorage) CreateDeck(ctx context.Context, deck models.Deck) (*model
 	return m.GetDeck(ctx, deck.ID)
 }
 
-func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
+func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck deckdef.Deck) (*deckdef.Deck, error) {
 	existingDeck, err := m.GetDeck(ctx, deck.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing deck: %w", err)
@@ -166,7 +166,7 @@ func (m *MySQLStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*model
 
 	deckType := updatedDeck.Type
 	if deckType == "" {
-		deckType = models.DeckTypeStandard
+		deckType = deckdef.DeckTypeStandard
 	}
 
 	query := squirrel.Update("decks").
@@ -213,7 +213,7 @@ func (m *MySQLStorage) DeleteDeck(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error) {
+func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*deckdef.CardWithQuantity, error) {
 	var internalDeckID int
 	err := m.readerDB.QueryRowContext(ctx, "SELECT id FROM decks WHERE uuid = ?", deckID[:]).Scan(&internalDeckID)
 	if err != nil {
@@ -249,7 +249,7 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 	}
 	defer rows.Close()
 
-	var cards []*models.CardWithQuantity
+	var cards []*deckdef.CardWithQuantity
 	for rows.Next() {
 		// Basic fields that every card type has
 		var cardUUIDBytes []byte
@@ -283,13 +283,13 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 			return nil, fmt.Errorf("failed to parse UUID: %w", err)
 		}
 
-		var cardInterface models.CardInterface
+		var cardInterface deckdef.CardInterface
 		switch cardType {
-		case models.TypePlayingCard:
+		case deckdef.TypePlayingCard:
 			if suit == nil || ranking == nil {
 				return nil, fmt.Errorf("playing card missing required fields")
 			}
-			cardInterface = &models.PlayingCard{
+			cardInterface = &deckdef.PlayingCard{
 				ID:            cardUUID,
 				Name:          name,
 				Description:   safeString(description),
@@ -298,18 +298,18 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 				Suit:          safeString(suit),
 				Ranking:       safeInt(ranking),
 			}
-		case models.TypeImageCard:
-			cardInterface = &models.ImageCard{
+		case deckdef.TypeImageCard:
+			cardInterface = &deckdef.ImageCard{
 				ID:            cardUUID,
 				Name:          name,
 				Description:   safeString(description),
 				FrontImageURL: safeString(frontImageURL),
 				BackImageURL:  safeString(backImageURL),
 			}
-		case models.TypeGameCard:
+		case deckdef.TypeGameCard:
 			// For game cards, we'd need to fetch additional fields from game_cards table
 			// For now, create a basic game card (this would need expansion when game_cards table is added)
-			cardInterface = &models.GameCard{
+			cardInterface = &deckdef.GameCard{
 				ID:            cardUUID,
 				Name:          name,
 				FrontImageURL: safeString(frontImageURL),
@@ -319,7 +319,7 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 			return nil, fmt.Errorf("unknown card type: %s", cardType)
 		}
 
-		cardWithQuantity := &models.CardWithQuantity{
+		cardWithQuantity := &deckdef.CardWithQuantity{
 			Card:     cardInterface,
 			Quantity: quantity,
 		}
@@ -336,7 +336,7 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 // It deletes existing cards and inserts the new ones, ensuring all cards exist in the database.
 // Assumption: Decks size is limited to ~100 cards,
 // so we can afford to delete and re-insert all cards in a single transaction.
-func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardInputWithQuantity) error {
+func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []deckdef.CardInputWithQuantity) error {
 	// Start transaction
 	tx, err := m.writerDB.BeginTx(ctx, nil)
 	if err != nil {

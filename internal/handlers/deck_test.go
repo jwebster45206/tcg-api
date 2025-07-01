@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -51,7 +51,7 @@ func TestDecksHandler_CreateDeck(t *testing.T) {
 	deckName := "Test Playing Deck"
 	deckType := "playing-card"
 
-	deck := models.Deck{
+	deck := deckdef.Deck{
 		Name:           deckName,
 		Type:           deckType,
 		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
@@ -82,7 +82,7 @@ func TestDecksHandler_CreateDeck(t *testing.T) {
 			status, http.StatusCreated)
 	}
 
-	var responseDeck models.Deck
+	var responseDeck deckdef.Deck
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseDeck); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
@@ -113,14 +113,14 @@ func TestDecksHandler_CreateDeckWithCards(t *testing.T) {
 	cardID1 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") // Ace of Spades
 	cardID2 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002") // King of Hearts
 
-	deckInput := models.DeckInput{
+	deckInput := deckdef.DeckInput{
 		Name:           deckName,
 		Type:           deckType,
 		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
-		Cards: &models.CardCollectionInput{
-			Items: []models.CardInputWithQuantity{
-				{Card: models.CardInput{ID: cardID1}, Quantity: 2},
-				{Card: models.CardInput{ID: cardID2}, Quantity: 1},
+		Cards: &deckdef.CardCollectionInput{
+			Items: []deckdef.CardInputWithQuantity{
+				{Card: deckdef.CardInput{ID: cardID1}, Quantity: 2},
+				{Card: deckdef.CardInput{ID: cardID2}, Quantity: 1},
 			},
 		},
 	}
@@ -151,7 +151,7 @@ func TestDecksHandler_CreateDeckWithCards(t *testing.T) {
 		t.Logf("Response body: %s", rr.Body.String())
 	}
 
-	var responseDeck models.Deck
+	var responseDeck deckdef.Deck
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseDeck); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestDecksHandler_GetDeck(t *testing.T) {
 	deckName := "Test Deck"
 	deckType := "standard"
 
-	deck := models.Deck{
+	deck := deckdef.Deck{
 		ID:        deckID,
 		Name:      deckName,
 		Type:      deckType,
@@ -220,7 +220,7 @@ func TestDecksHandler_GetDeck(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var responseDeck models.Deck
+	var responseDeck deckdef.Deck
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseDeck); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 	originalName := "Original Deck"
 	deckType := "standard"
 
-	originalDeck := models.Deck{
+	originalDeck := deckdef.Deck{
 		ID:        deckID,
 		Name:      originalName,
 		Type:      deckType,
@@ -301,7 +301,7 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 	// Update the deck
 	updatedName := "Updated Deck Name"
 	updatedType := "tcg"
-	updateDeck := models.Deck{
+	updateDeck := deckdef.Deck{
 		Name:           updatedName,
 		Type:           updatedType,
 		SleeveImageURL: stringPtr("https://example.com/new-sleeve.jpg"),
@@ -329,7 +329,7 @@ func TestDecksHandler_UpdateDeck(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var responseDeck models.Deck
+	var responseDeck deckdef.Deck
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseDeck); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
@@ -352,7 +352,7 @@ func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
 	deckName := "Test Deck for Update"
 	deckType := "playing-card"
 
-	deck := models.Deck{
+	deck := deckdef.Deck{
 		Name:           deckName,
 		Type:           deckType,
 		SleeveImageURL: stringPtr("https://example.com/sleeve.jpg"),
@@ -382,7 +382,7 @@ func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
 		t.Fatalf("failed to create deck: got %v want %v", status, http.StatusCreated)
 	}
 
-	var createdDeck models.Deck
+	var createdDeck deckdef.Deck
 	if err := json.Unmarshal(rr.Body.Bytes(), &createdDeck); err != nil {
 		t.Fatalf("Failed to parse response body: %v", err)
 	}
@@ -391,13 +391,13 @@ func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
 	cardID1 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001") // Ace of Spades
 	cardID2 := uuid.MustParse("550e8400-e29b-41d4-a716-446655440003") // Queen of Diamonds
 
-	deckInput := models.DeckInput{
+	deckInput := deckdef.DeckInput{
 		Name: "Updated Deck Name",
 		Type: deckType,
-		Cards: &models.CardCollectionInput{
-			Items: []models.CardInputWithQuantity{
-				{Card: models.CardInput{ID: cardID1}, Quantity: 1},
-				{Card: models.CardInput{ID: cardID2}, Quantity: 3},
+		Cards: &deckdef.CardCollectionInput{
+			Items: []deckdef.CardInputWithQuantity{
+				{Card: deckdef.CardInput{ID: cardID1}, Quantity: 1},
+				{Card: deckdef.CardInput{ID: cardID2}, Quantity: 3},
 			},
 		},
 	}
@@ -421,7 +421,7 @@ func TestDecksHandler_UpdateDeckWithCards(t *testing.T) {
 		t.Logf("Response body: %s", updateRr.Body.String())
 	}
 
-	var updatedDeck models.Deck
+	var updatedDeck deckdef.Deck
 	if err := json.Unmarshal(updateRr.Body.Bytes(), &updatedDeck); err != nil {
 		t.Errorf("Failed to parse response body: %v", err)
 	}
@@ -450,7 +450,7 @@ func TestDecksHandler_DeleteDeck(t *testing.T) {
 	deckName := "Deck to Delete"
 	deckType := "standard"
 
-	deck := models.Deck{
+	deck := deckdef.Deck{
 		ID:        deckID,
 		Name:      deckName,
 		Type:      deckType,

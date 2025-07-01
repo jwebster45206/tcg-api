@@ -1,4 +1,6 @@
-package models
+package deckstate
+
+import "github.com/jwebster45206/tcg-api/internal/deckdef"
 
 const (
 	FaceDown Facing = "face-down"
@@ -29,9 +31,9 @@ type ZoneItem interface {
 
 // CardInZone represents a card with its state within a specific zone
 type CardInZone struct {
-	Card        CardInterface `json:"card"`
-	Facing      *Facing       `json:"facing,omitempty"` // If nil, inherits from zone
-	Orientation *Orientation  `json:"orientation"`
+	Card        deckdef.CardInterface `json:"card"`
+	Facing      *Facing               `json:"facing,omitempty"` // If nil, inherits from zone
+	Orientation *Orientation          `json:"orientation"`
 	// Could add more game-specific properties like:
 	// Tapped      bool          `json:"tapped,omitempty"`     // For games that use tapping
 	// Counters    map[string]int `json:"counters,omitempty"`  // +1/+1 counters, etc.

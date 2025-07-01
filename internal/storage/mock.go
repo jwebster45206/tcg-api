@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 )
 
@@ -18,25 +18,25 @@ var (
 // MockStorage implements Storage interface for testing and development
 type MockStorage struct {
 	mu           sync.RWMutex
-	gameCards    map[uuid.UUID]*models.GameCard
-	decks        map[uuid.UUID]*models.Deck
-	imageCards   map[uuid.UUID]*models.ImageCard
-	playingCards map[uuid.UUID]*models.PlayingCard
-	deckCards    map[uuid.UUID][]*models.CardWithQuantity // deckID -> cards
+	gameCards    map[uuid.UUID]*deckdef.GameCard
+	decks        map[uuid.UUID]*deckdef.Deck
+	imageCards   map[uuid.UUID]*deckdef.ImageCard
+	playingCards map[uuid.UUID]*deckdef.PlayingCard
+	deckCards    map[uuid.UUID][]*deckdef.CardWithQuantity // deckID -> cards
 }
 
 // NewMockStorage creates a new MockStorage instance with some sample data
 func NewMockStorage() Storage {
 	storage := &MockStorage{
-		gameCards:    make(map[uuid.UUID]*models.GameCard),
-		decks:        make(map[uuid.UUID]*models.Deck),
-		imageCards:   make(map[uuid.UUID]*models.ImageCard),
-		playingCards: make(map[uuid.UUID]*models.PlayingCard),
-		deckCards:    make(map[uuid.UUID][]*models.CardWithQuantity),
+		gameCards:    make(map[uuid.UUID]*deckdef.GameCard),
+		decks:        make(map[uuid.UUID]*deckdef.Deck),
+		imageCards:   make(map[uuid.UUID]*deckdef.ImageCard),
+		playingCards: make(map[uuid.UUID]*deckdef.PlayingCard),
+		deckCards:    make(map[uuid.UUID][]*deckdef.CardWithQuantity),
 	}
 
 	// Add some sample playing cards for testing
-	samplePlayingCards := []*models.PlayingCard{
+	samplePlayingCards := []*deckdef.PlayingCard{
 		{
 			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
 			Name:          "Ace of Spades",
@@ -67,7 +67,7 @@ func NewMockStorage() Storage {
 	}
 
 	// Add some sample image cards
-	sampleImageCards := []*models.ImageCard{
+	sampleImageCards := []*deckdef.ImageCard{
 		{
 			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440004"),
 			Name:          "Sample Image Card",
@@ -78,7 +78,7 @@ func NewMockStorage() Storage {
 	}
 
 	// Add some sample game cards
-	sampleGameCards := []*models.GameCard{
+	sampleGameCards := []*deckdef.GameCard{
 		{
 			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440005"),
 			Name:          "Sample Game Card",
@@ -106,13 +106,13 @@ func (ms *MockStorage) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*models.GameCard, error) {
+func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*deckdef.GameCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	switch cardType {
 	case "gamecard":
-		cards := make([]*models.GameCard, 0, len(m.gameCards))
+		cards := make([]*deckdef.GameCard, 0, len(m.gameCards))
 		for _, card := range m.gameCards {
 			// Create a copy to avoid modifying the original
 			cardCopy := *card
@@ -124,7 +124,7 @@ func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*mo
 	}
 }
 
-func (m *MockStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*models.GameCard, error) {
+func (m *MockStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*deckdef.GameCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -138,7 +138,7 @@ func (m *MockStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*models.Ga
 }
 
 // CreateGameCard adds a new card to storage
-func (m *MockStorage) CreateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error) {
+func (m *MockStorage) CreateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if card.ID == uuid.Nil {
@@ -155,7 +155,7 @@ func (m *MockStorage) CreateGameCard(ctx context.Context, card models.GameCard) 
 	return &cardCopy, nil
 }
 
-func (m *MockStorage) UpdateGameCard(ctx context.Context, card models.GameCard) (*models.GameCard, error) {
+func (m *MockStorage) UpdateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -181,11 +181,11 @@ func (m *MockStorage) DeleteGameCard(ctx context.Context, id uuid.UUID) error {
 
 // Deck operations
 
-func (m *MockStorage) ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.Deck, error) {
+func (m *MockStorage) ListDecks(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.Deck, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	decks := make([]*models.Deck, 0, len(m.decks))
+	decks := make([]*deckdef.Deck, 0, len(m.decks))
 	for _, deck := range m.decks {
 		deckCopy := *deck
 		decks = append(decks, &deckCopy)
@@ -198,7 +198,7 @@ func (m *MockStorage) ListDecks(ctx context.Context, filters []query.Filter, sor
 	return decks, nil
 }
 
-func (m *MockStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, error) {
+func (m *MockStorage) GetDeck(ctx context.Context, id uuid.UUID) (*deckdef.Deck, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -212,7 +212,7 @@ func (m *MockStorage) GetDeck(ctx context.Context, id uuid.UUID) (*models.Deck, 
 	return &deckCopy, nil
 }
 
-func (m *MockStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
+func (m *MockStorage) CreateDeck(ctx context.Context, deck deckdef.Deck) (*deckdef.Deck, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -230,7 +230,7 @@ func (m *MockStorage) CreateDeck(ctx context.Context, deck models.Deck) (*models
 	return &deckCopy, nil
 }
 
-func (m *MockStorage) UpdateDeck(ctx context.Context, deck models.Deck) (*models.Deck, error) {
+func (m *MockStorage) UpdateDeck(ctx context.Context, deck deckdef.Deck) (*deckdef.Deck, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -255,7 +255,7 @@ func (m *MockStorage) DeleteDeck(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (m *MockStorage) CreateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
+func (m *MockStorage) CreateImageCard(ctx context.Context, imageCard deckdef.ImageCard) (*deckdef.ImageCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -274,7 +274,7 @@ func (m *MockStorage) CreateImageCard(ctx context.Context, imageCard models.Imag
 	return &imageCopy, nil
 }
 
-func (m *MockStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.ImageCard, error) {
+func (m *MockStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*deckdef.ImageCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -287,7 +287,7 @@ func (m *MockStorage) GetImageCard(ctx context.Context, id uuid.UUID) (*models.I
 	return &imageCopy, nil
 }
 
-func (m *MockStorage) UpdateImageCard(ctx context.Context, imageCard models.ImageCard) (*models.ImageCard, error) {
+func (m *MockStorage) UpdateImageCard(ctx context.Context, imageCard deckdef.ImageCard) (*deckdef.ImageCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -312,12 +312,12 @@ func (m *MockStorage) DeleteImageCard(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (m *MockStorage) ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.ImageCard, error) {
+func (m *MockStorage) ListImageCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.ImageCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	// filter and sort are not implemented in mock storage
-	imageCards := make([]*models.ImageCard, 0, len(m.imageCards))
+	imageCards := make([]*deckdef.ImageCard, 0, len(m.imageCards))
 	for _, imageCard := range m.imageCards {
 		// Create a copy to avoid modifying the original
 		imageCopy := *imageCard
@@ -326,11 +326,11 @@ func (m *MockStorage) ListImageCards(ctx context.Context, filters []query.Filter
 	return imageCards, nil
 }
 
-func (m *MockStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*models.PlayingCard, error) {
+func (m *MockStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.PlayingCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	playingCards := make([]*models.PlayingCard, 0, len(m.playingCards))
+	playingCards := make([]*deckdef.PlayingCard, 0, len(m.playingCards))
 	for _, playingCard := range m.playingCards {
 		// Create a copy to avoid modifying the original
 		cardCopy := *playingCard
@@ -342,7 +342,7 @@ func (m *MockStorage) ListPlayingCards(ctx context.Context, filters []query.Filt
 	return playingCards, nil
 }
 
-func (m *MockStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models.PlayingCard, error) {
+func (m *MockStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*deckdef.PlayingCard, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -355,7 +355,7 @@ func (m *MockStorage) GetPlayingCard(ctx context.Context, id uuid.UUID) (*models
 	return &cardCopy, nil
 }
 
-func (m *MockStorage) CreatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
+func (m *MockStorage) CreatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -375,7 +375,7 @@ func (m *MockStorage) CreatePlayingCard(ctx context.Context, card models.Playing
 	return &cardCopy, nil
 }
 
-func (m *MockStorage) UpdatePlayingCard(ctx context.Context, card models.PlayingCard) (*models.PlayingCard, error) {
+func (m *MockStorage) UpdatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := card.Validate(); err != nil {
@@ -401,7 +401,7 @@ func (m *MockStorage) DeletePlayingCard(ctx context.Context, id uuid.UUID) error
 	return nil
 }
 
-func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*models.CardWithQuantity, error) {
+func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*deckdef.CardWithQuantity, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -413,7 +413,7 @@ func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*m
 	// Return stored cards for this deck if they exist
 	if cards, exists := m.deckCards[deckID]; exists {
 		// Return a copy to prevent external modification
-		result := make([]*models.CardWithQuantity, len(cards))
+		result := make([]*deckdef.CardWithQuantity, len(cards))
 		for i, card := range cards {
 			cardCopy := *card
 			result[i] = &cardCopy
@@ -422,10 +422,10 @@ func (m *MockStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*m
 	}
 
 	// If no cards are explicitly set, return empty slice
-	return []*models.CardWithQuantity{}, nil
+	return []*deckdef.CardWithQuantity{}, nil
 }
 
-func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []models.CardInputWithQuantity) error {
+func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards []deckdef.CardInputWithQuantity) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -434,10 +434,10 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 	}
 
 	// Validate that all cards exist and convert to CardWithQuantity
-	cardPtrs := make([]*models.CardWithQuantity, 0, len(cards))
+	cardPtrs := make([]*deckdef.CardWithQuantity, 0, len(cards))
 
 	for _, cardInput := range cards {
-		var foundCard models.CardInterface
+		var foundCard deckdef.CardInterface
 
 		for _, pc := range m.playingCards {
 			if pc.ID == cardInput.Card.ID {
@@ -468,7 +468,7 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 			return fmt.Errorf("card not found: %s", cardInput.Card.ID)
 		}
 
-		cardWithQuantity := &models.CardWithQuantity{
+		cardWithQuantity := &deckdef.CardWithQuantity{
 			Card:     foundCard,
 			Quantity: cardInput.Quantity,
 		}
@@ -479,11 +479,11 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 	return nil
 }
 
-func (m *MockStorage) GetCardsByIDs(ctx context.Context, cardIDs []uuid.UUID) ([]models.CardInterface, error) {
+func (m *MockStorage) GetCardsByIDs(ctx context.Context, cardIDs []uuid.UUID) ([]deckdef.CardInterface, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var cards []models.CardInterface
+	var cards []deckdef.CardInterface
 
 	for _, cardID := range cardIDs {
 		var found bool

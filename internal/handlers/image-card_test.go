@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/models"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
@@ -100,7 +100,7 @@ func TestImageCardsHandler_CreateCard(t *testing.T) {
 	logger := testLogger()
 	handler := NewImageCardsHandler(mockStorage, logger)
 
-	card := models.ImageCard{
+	card := deckdef.ImageCard{
 		Name:          "Test Image Card",
 		Description:   "A test image card",
 		FrontImageURL: "https://example.com/front.jpg",
@@ -126,7 +126,7 @@ func TestImageCardsHandler_CreateCard(t *testing.T) {
 			status, http.StatusCreated)
 	}
 
-	var createdCard models.ImageCard
+	var createdCard deckdef.ImageCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &createdCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestImageCardsHandler_UpdateCard(t *testing.T) {
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	// First create a card
-	card := models.ImageCard{
+	card := deckdef.ImageCard{
 		Name:          "Original Image Card",
 		Description:   "Original description",
 		FrontImageURL: "https://example.com/front.jpg",
@@ -179,7 +179,7 @@ func TestImageCardsHandler_UpdateCard(t *testing.T) {
 	}
 
 	// Update the card
-	updatedCard := models.ImageCard{
+	updatedCard := deckdef.ImageCard{
 		ID:            createdCard.ID,
 		Name:          "Updated Image Card",
 		Description:   "Updated description",
@@ -206,7 +206,7 @@ func TestImageCardsHandler_UpdateCard(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	var responseCard models.ImageCard
+	var responseCard deckdef.ImageCard
 	if err := json.Unmarshal(rr.Body.Bytes(), &responseCard); err != nil {
 		t.Errorf("Could not parse response body: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestImageCardsHandler_DeleteCard(t *testing.T) {
 	handler := NewImageCardsHandler(mockStorage, logger)
 
 	// First create a card
-	card := models.ImageCard{
+	card := deckdef.ImageCard{
 		Name:          "Card to Delete",
 		Description:   "This card will be deleted",
 		FrontImageURL: "https://example.com/front.jpg",
@@ -374,7 +374,7 @@ func TestParseFilters(t *testing.T) {
 			// Create request with query parameters
 			req := httptest.NewRequest("GET", "/v1/image-cards?"+tt.queryParams, nil)
 
-			filters, err := ParseFilters(req, models.ImageCardQueryConfig)
+			filters, err := ParseFilters(req, deckdef.ImageCardQueryConfig)
 
 			if tt.expectError {
 				if err == nil {
@@ -528,7 +528,7 @@ func TestParseSorts(t *testing.T) {
 			// Create request with query parameters
 			req := httptest.NewRequest("GET", "/v1/image-cards?"+tt.queryParams, nil)
 
-			sorts, err := ParseSorts(req, models.ImageCardQueryConfig)
+			sorts, err := ParseSorts(req, deckdef.ImageCardQueryConfig)
 
 			if tt.wantError {
 				if err == nil {
