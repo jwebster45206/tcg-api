@@ -18,32 +18,63 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 - Deck creation and management
 - Deck state management (TODO)
 
-## Resource Design
+### Deck State Management
+- Create a mutable instance of an immutable deck (in-progress)
+- Shuffle (TODO)
+- Draw (TODO)
 
-### Cards 
-Cards are structs that implement CardInterface. This allows a deck to contain >1 card type, and allows game designers to use multiple card types. 
+## Resource Design 
 
-All card types must implement `CardInterface`:
+Resources are separated into two main packages, `deckdef` and `deckstate`. 
+
+### Deck Definitions
+
+Package `deckdef` contains definitions for card decks and card types. Game-specific card types may also live in this package, as long as they are purely definitional.
+
+Models in the package are immutable templates that define deck composition and card properties, but do not track gameplay state or card positions. These templates can be used to instantiate one or more independent DeckState instances.
+
+#### Cards 
+Cards are structs that implement `CardInterface`. This allows a deck to contain >1 card type, and allows game designers to use multiple card types. 
 - `GetID()`
 - `GetName()`
 - `GetFrontImageURL()`
 - `GetBackImageURL()`
 - `GetCardType()`
 
-Card Types are designed to be extensible. The following types are available currently:
+Card Types are extendable. The following are available currently:
 - **ImageCard**: Simple cards with just imagery and basic info (name, description, images) ✅
 - **PlayingCard**: Standard playing cards (suit, value, images) ✅
 - **GameCard**: Generic TCG card for demo (partial implementation)
 
-### Decks
-A deck is an ordered collection of structs that implement a basic card interface. Deck and card interfaces should be agnostic of game mechanics. If a mechanic is specific to a game and not widely applicable to most decks of cards, it does not belong in the deck api. 
+#### Decks
+A deck is an un-ordered collection of structs that implement CardInterface. 
 
-## API Endpoints
+#### Endpoints
 - `/v1/image-cards` - Management for the simplest base card type ✅
 - `/v1/playing-cards` - Management for traditional playing cards ✅
 - `/v1/game-cards` - Generic TCG card management (partial implementation)
 - `/v1/decks` - Deck management ✅
-- `/v1/deck-states` - Deck state / deck operations: TODO
+
+### Deck State
+
+Package `deckstate` models the runtime state of a deck during gameplay.
+
+Models in the package track the mutable aspects of a deck instance, such as card zones, card orientation, draw/discard behavior, and per-player hands. This state is created from an immutable deck template (see package deckdef), and evolves as players interact with the cards.
+
+The package makes no assumptions about specific game rules, but provides a flexible framework for modeling card positions, zone behavior, and visibility.
+
+*Implementation is in progress.*
+
+#### DeckState
+
+DeckState is a runtime state of a deck during gameplay. It includes the deck template, player count, and zones where cards are located.
+
+#### Zone
+
+Zone is a collection of cards and groups within a specific area of the game. Zones can represent different game states like draw piles, discard piles, hands, etc.
+
+#### Endpoints
+- `/v1/deck-states` - Deck state / deck operations (in progress)
 
 ## Security (TODO)
 

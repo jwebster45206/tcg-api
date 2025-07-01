@@ -6,6 +6,8 @@ type Facing string
 type Orientation string
 type ZoneType string
 
+// DeckState is a runtime state of a deck during gameplay.
+// It includes the deck template, player count, and zones where cards are located.
 type DeckState struct {
 	ID          string          `json:"id"`           // Unique ID for the state instance
 	Deck        deckdef.Deck    `json:"deck"`         // Source deck template
