@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -18,7 +19,7 @@ type HealthResponse struct {
 }
 
 // HealthHandler handles the health check endpoint
-func NewHealthHandler(sto storage.Storage) http.HandlerFunc {
+func NewHealthHandler(sto storage.Storage, redisClient *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Only allow GET requests
 		if r.Method != http.MethodGet {
@@ -46,6 +47,25 @@ func NewHealthHandler(sto storage.Storage) http.HandlerFunc {
 			}
 		} else {
 			checks["database"] = "unhealthy: no storage configured"
+			status = "unhealthy"
+			httpStatus = http.StatusServiceUnavailable
+		}
+
+		// Test Redis connection
+		if redisClient != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			_, err := redisClient.Ping(ctx).Result()
+			if err != nil {
+				checks["redis"] = "unhealthy: " + err.Error()
+				status = "unhealthy"
+				httpStatus = http.StatusServiceUnavailable
+			} else {
+				checks["redis"] = "healthy"
+			}
+		} else {
+			checks["redis"] = "unhealthy: no redis configured"
 			status = "unhealthy"
 			httpStatus = http.StatusServiceUnavailable
 		}

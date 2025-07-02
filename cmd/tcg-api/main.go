@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 	"github.com/jwebster45206/tcg-api/internal/storage"
@@ -106,13 +108,20 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 		sto = storage.NewMockStorage()
 	}
 
+	// Initialize Redis client
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+
 	gameCardsHandler := handlers.NewGameCardsHandler(sto, logger)
 	imageCardsHandler := handlers.NewImageCardsHandler(sto, logger)
 	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
 	deckHandler := handlers.NewDecksHandler(sto, logger)
 
 	// Health endpoint
-	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, redisClient))
 
 	mux.Handle("/v1/image-cards", imageCardsHandler)
 	mux.Handle("/v1/image-cards/", imageCardsHandler)

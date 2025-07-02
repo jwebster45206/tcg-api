@@ -6,15 +6,35 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/go-redis/redis/v8"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
+// createTestRedisClient creates a Redis client that connects to a mock Redis server
+// Using miniredis is acceptable for unit tests when testing Redis integration
+func createTestRedisClient() *redis.Client {
+	// Start an in-memory Redis server for testing
+	s, err := miniredis.Run()
+	if err != nil {
+		panic(err)
+	}
+
+	// Create a Redis client that connects to the mock server
+	return redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+	})
+}
+
 func TestMainRoutes(t *testing.T) {
-	// Test that our routes are properly configured
 	sto := storage.NewMockStorage()
+
+	// Create a test Redis client using miniredis
+	redisClient := createTestRedisClient()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, redisClient))
 
 	tests := []struct {
 		name           string
@@ -24,7 +44,7 @@ func TestMainRoutes(t *testing.T) {
 		{
 			name:           "Health endpoint should be accessible",
 			path:           "/health",
-			expectedStatus: http.StatusOK,
+			expectedStatus: http.StatusOK, // Both storage and Redis mocks are healthy
 		},
 		{
 			name:           "Unknown endpoint should return 404",
@@ -54,8 +74,10 @@ func TestMainRoutes(t *testing.T) {
 func TestServerStartup(t *testing.T) {
 	// Test that we can create a server without it crashing
 	sto := storage.NewMockStorage()
+
+	mockRedis := createTestRedisClient()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, mockRedis))
 
 	server := &http.Server{
 		Addr:         ":0", // Use port 0 to get any available port
