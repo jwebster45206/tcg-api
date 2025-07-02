@@ -12,15 +12,12 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
-// createTestRedisClient creates a Redis client that connects to a mock Redis server
-// Using miniredis is acceptable for unit tests when testing Redis integration
 func createTestRedisClient() *redis.Client {
 	// Start an in-memory Redis server for testing
 	s, err := miniredis.Run()
 	if err != nil {
 		panic(err)
 	}
-
 	// Create a Redis client that connects to the mock server
 	return redis.NewClient(&redis.Options{
 		Addr: s.Addr(),
@@ -29,8 +26,6 @@ func createTestRedisClient() *redis.Client {
 
 func TestMainRoutes(t *testing.T) {
 	sto := storage.NewMockStorage()
-
-	// Create a test Redis client using miniredis
 	redisClient := createTestRedisClient()
 
 	mux := http.NewServeMux()
@@ -44,7 +39,7 @@ func TestMainRoutes(t *testing.T) {
 		{
 			name:           "Health endpoint should be accessible",
 			path:           "/health",
-			expectedStatus: http.StatusOK, // Both storage and Redis mocks are healthy
+			expectedStatus: http.StatusOK,
 		},
 		{
 			name:           "Unknown endpoint should return 404",

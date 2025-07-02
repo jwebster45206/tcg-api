@@ -95,7 +95,6 @@ func main() {
 func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// Initialize MySQL storage
 	var readerConfig *config.MySQLConfig
 	if cfg.DBReader.Host != "" {
 		readerConfig = &cfg.DBReader
@@ -108,7 +107,6 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 		sto = storage.NewMockStorage()
 	}
 
-	// Initialize Redis client
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", cfg.Redis.Host, cfg.Redis.Port),
 		Password: cfg.Redis.Password,
@@ -120,7 +118,6 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
 	deckHandler := handlers.NewDecksHandler(sto, logger)
 
-	// Health endpoint
 	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, redisClient))
 
 	mux.Handle("/v1/image-cards", imageCardsHandler)
