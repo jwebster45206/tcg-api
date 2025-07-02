@@ -11,6 +11,7 @@ services:
       - ./config.docker.json:/app/config.json:ro
     depends_on:
       - mysql
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       timeout: 10s
@@ -45,10 +46,29 @@ services:
     networks:
       - tcg-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: tcg-redis
+    ports:
+      - "6379:6379"
+    # volumes:
+    #   - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+      interval: 10s
+      start_period: 30s
+    networks:
+      - tcg-network
+
 networks:
   tcg-network:
     driver: bridge
 
 # Optional: Uncomment for persistent storage
+# volumes:
+#   redis_data:
 # volumes:
 #   mysql_data:

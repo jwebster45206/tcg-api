@@ -6,15 +6,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/go-redis/redis/v8"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
+func createTestRedisClient() *redis.Client {
+	// Start an in-memory Redis server for testing
+	s, err := miniredis.Run()
+	if err != nil {
+		panic(err)
+	}
+	// Create a Redis client that connects to the mock server
+	return redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+	})
+}
+
 func TestMainRoutes(t *testing.T) {
-	// Test that our routes are properly configured
 	sto := storage.NewMockStorage()
+	redisClient := createTestRedisClient()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, redisClient))
 
 	tests := []struct {
 		name           string
@@ -54,8 +69,10 @@ func TestMainRoutes(t *testing.T) {
 func TestServerStartup(t *testing.T) {
 	// Test that we can create a server without it crashing
 	sto := storage.NewMockStorage()
+
+	mockRedis := createTestRedisClient()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", handlers.NewHealthHandler(sto))
+	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, mockRedis))
 
 	server := &http.Server{
 		Addr:         ":0", // Use port 0 to get any available port
