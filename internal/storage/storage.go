@@ -41,9 +41,6 @@ type Storage interface {
 	CreateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error)
 	UpdateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error)
 	DeleteGameCard(ctx context.Context, id uuid.UUID) error
-
-	// TODO: DeckState operations for future gameplay mechanics
-	// CreateDeckState, GetDeckState, UpdateDeckState, DeleteDeckState
 }
 
 // Helper function to safely dereference nullable string pointers

@@ -74,6 +74,8 @@ func (g GroupInZone) GetCards() []CardInZone {
 	return resolvedCards
 }
 
+// Zone is a collection of cards and groups within a specific area of the game.
+// Zones can represent different game states like draw piles, discard piles, hands, etc.
 type Zone struct {
 	Name          string     `json:"name"`           // "draw", "hand:1", "table:2", etc.
 	Type          ZoneType   `json:"type"`           // Optional: "draw", "hand", "discard"
