@@ -20,7 +20,7 @@ import (
 
 func TestDeckStateHandler_CreateDeckState(t *testing.T) {
 	logger := config.NewLogger(config.LoggerConfig{Level: "ERROR"})
-	
+
 	// Create sample deck
 	deckID := uuid.New()
 	sampleDeck := &deckdef.Deck{
@@ -174,7 +174,7 @@ func TestDeckStateHandler_CreateDeckState(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/v1/deckstates", bytes.NewBuffer(requestBody))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
@@ -214,7 +214,7 @@ func TestDeckStateHandler_CreateDeckState(t *testing.T) {
 
 func TestDeckStateHandler_GetDeckState(t *testing.T) {
 	logger := config.NewLogger(config.LoggerConfig{Level: "ERROR"})
-	
+
 	// Create sample deck state
 	deckStateID := uuid.New().String()
 	sampleDeckState := &deckstate.DeckState{
@@ -292,7 +292,7 @@ func TestDeckStateHandler_GetDeckState(t *testing.T) {
 
 			// Create request
 			req := httptest.NewRequest(http.MethodGet, "/v1/deckstates/"+tt.deckStateID, nil)
-			
+
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
@@ -328,7 +328,7 @@ func TestDeckStateHandler_GetDeckState(t *testing.T) {
 
 func TestDeckStateHandler_DeleteDeckState(t *testing.T) {
 	logger := config.NewLogger(config.LoggerConfig{Level: "ERROR"})
-	
+
 	// Create sample deck state
 	deckStateID := uuid.New().String()
 	sampleDeckState := &deckstate.DeckState{
@@ -416,7 +416,7 @@ func TestDeckStateHandler_DeleteDeckState(t *testing.T) {
 
 			// Create request
 			req := httptest.NewRequest(http.MethodDelete, "/v1/deckstates/"+tt.deckStateID, nil)
-			
+
 			// Create response recorder
 			rr := httptest.NewRecorder()
 
@@ -442,7 +442,7 @@ func TestDeckStateHandler_DeleteDeckState(t *testing.T) {
 				if rr.Body.Len() > 0 {
 					t.Errorf("Expected empty response body for successful delete, got: %s", rr.Body.String())
 				}
-				
+
 				// Verify the deck state was actually deleted
 				if mockStateStorage.HasState(deckStateID) {
 					t.Errorf("Expected deck state to be deleted, but it still exists")
