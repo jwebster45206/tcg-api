@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -154,8 +155,7 @@ func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 	// If cards are requested, fetch and populate them for each deck
 	if includeCards {
 		for _, deck := range decks {
-			cards, err := h.storage.ListDeckCards(r.Context(), deck.ID)
-			if err != nil {
+			if err := includeDeckCards(r.Context(), h.storage, deck); err != nil {
 				h.logger.Error("Failed to get deck cards",
 					slog.String("operation", "get_deck_cards"),
 					slog.String("deck_id", deck.ID.String()),
@@ -163,25 +163,6 @@ func (h *DecksHandler) listDecks(w http.ResponseWriter, r *http.Request) {
 				// Continue with other decks instead of failing completely
 				continue
 			}
-
-			// Build CardCollection
-			totalCount := 0
-			for _, cardWithQuantity := range cards {
-				totalCount += cardWithQuantity.Quantity
-			}
-
-			cardCollection := &deckdef.CardCollection{
-				TotalCount:  totalCount,
-				UniqueCount: len(cards),
-				Items:       make([]deckdef.CardWithQuantity, len(cards)),
-			}
-
-			// Convert from pointers to values for the response
-			for i, cardPtr := range cards {
-				cardCollection.Items[i] = *cardPtr
-			}
-
-			deck.Cards = cardCollection
 		}
 	}
 
@@ -227,8 +208,7 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 	// If cards are requested, fetch and populate them
 	includeCards := shouldIncludeCards(r.URL.Query().Get("include"))
 	if includeCards {
-		cards, err := h.storage.ListDeckCards(r.Context(), deckID)
-		if err != nil {
+		if err := includeDeckCards(r.Context(), h.storage, deck); err != nil {
 			h.logger.Error("Failed to get deck cards",
 				slog.String("operation", "get_deck_cards"),
 				slog.String("deck_id", deckIDStr),
@@ -241,23 +221,6 @@ func (h *DecksHandler) getDeck(w http.ResponseWriter, r *http.Request, deckIDStr
 			writeJSONResponse(w, http.StatusInternalServerError, response)
 			return
 		}
-
-		totalCount := 0
-		for _, cardWithQuantity := range cards {
-			totalCount += cardWithQuantity.Quantity
-		}
-
-		cardCollection := &deckdef.CardCollection{
-			TotalCount:  totalCount,
-			UniqueCount: len(cards),
-			Items:       make([]deckdef.CardWithQuantity, len(cards)),
-		}
-
-		// Convert from pointers to values for the response
-		for i, cardPtr := range cards {
-			cardCollection.Items[i] = *cardPtr
-		}
-		deck.Cards = cardCollection
 	}
 
 	writeJSONResponse(w, http.StatusOK, deck)
@@ -325,30 +288,12 @@ func (h *DecksHandler) createDeck(w http.ResponseWriter, r *http.Request) {
 	// Check if response should include cards
 	includeCards := cardsProvided || shouldIncludeCards(r.URL.Query().Get("include"))
 	if includeCards {
-		cards, err := h.storage.ListDeckCards(r.Context(), createdDeck.ID)
-		if err != nil {
+		if err := includeDeckCards(r.Context(), h.storage, createdDeck); err != nil {
 			h.logger.Error("Failed to get deck cards for response",
 				slog.String("operation", "get_deck_cards"),
 				slog.String("deck_id", createdDeck.ID.String()),
 				slog.Any("error", err))
 			// Continue without cards in response rather than failing the whole request
-		} else {
-			totalCount := 0
-			for _, cardWithQuantity := range cards {
-				totalCount += cardWithQuantity.Quantity
-			}
-
-			cardCollection := &deckdef.CardCollection{
-				TotalCount:  totalCount,
-				UniqueCount: len(cards),
-				Items:       make([]deckdef.CardWithQuantity, len(cards)),
-			}
-
-			// Convert from pointers to values for the response
-			for i, cardPtr := range cards {
-				cardCollection.Items[i] = *cardPtr
-			}
-			createdDeck.Cards = cardCollection
 		}
 	}
 
@@ -462,30 +407,12 @@ func (h *DecksHandler) updateDeck(w http.ResponseWriter, r *http.Request, deckID
 	// Check if response should include cards
 	includeCards := cardsProvided || shouldIncludeCards(r.URL.Query().Get("include"))
 	if includeCards {
-		cards, err := h.storage.ListDeckCards(r.Context(), deckID)
-		if err != nil {
+		if err := includeDeckCards(r.Context(), h.storage, updatedDeck); err != nil {
 			h.logger.Error("Failed to get deck cards for response",
 				slog.String("operation", "get_deck_cards"),
 				slog.String("deck_id", deckIDStr),
 				slog.Any("error", err))
 			// Continue without cards in response rather than failing the whole request
-		} else {
-			totalCount := 0
-			for _, cardWithQuantity := range cards {
-				totalCount += cardWithQuantity.Quantity
-			}
-
-			cardCollection := &deckdef.CardCollection{
-				TotalCount:  totalCount,
-				UniqueCount: len(cards),
-				Items:       make([]deckdef.CardWithQuantity, len(cards)),
-			}
-
-			// Convert from pointers to values for the response
-			for i, cardPtr := range cards {
-				cardCollection.Items[i] = *cardPtr
-			}
-			updatedDeck.Cards = cardCollection
 		}
 	}
 
@@ -575,4 +502,32 @@ func deckCardsChangedFromInput(current []*deckdef.CardWithQuantity, newCollectio
 	}
 
 	return false
+}
+
+// includeDeckCards fetches and populates the Cards field for a deck
+func includeDeckCards(ctx context.Context, storage storage.Storage, deck *deckdef.Deck) error {
+	cards, err := storage.ListDeckCards(ctx, deck.ID)
+	if err != nil {
+		return err
+	}
+
+	// Build CardCollection
+	totalCount := 0
+	for _, cardWithQuantity := range cards {
+		totalCount += cardWithQuantity.Quantity
+	}
+
+	cardCollection := &deckdef.CardCollection{
+		TotalCount:  totalCount,
+		UniqueCount: len(cards),
+		Items:       make([]deckdef.CardWithQuantity, len(cards)),
+	}
+
+	// Convert from pointers to values for the response
+	for i, cardPtr := range cards {
+		cardCollection.Items[i] = *cardPtr
+	}
+
+	deck.Cards = cardCollection
+	return nil
 }

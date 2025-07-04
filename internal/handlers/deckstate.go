@@ -118,7 +118,19 @@ func (h *DeckStateHandler) createDeckState(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// TODO expand deck cards into full deck definition
+	err = includeDeckCards(ctx, h.storage, deck)
+	if err != nil {
+		h.logger.Error("Failed to include deck cards",
+			slog.String("operation", "include_deck_cards"),
+			slog.String("deck_id", req.DeckID.String()),
+			slog.Any("error", err))
+		response := ErrorResponse{
+			Error:   errStrInternal,
+			Message: "Failed to include deck cards",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
 
 	// Create new deck state using the deck definition
 	deckState := deckstate.NewDeckState(*deck, req.PlayerCount)
