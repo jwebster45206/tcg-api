@@ -29,9 +29,9 @@ type SortZoneResponse struct {
 
 // SortZoneMeta contains metadata about the sort operation
 type SortZoneMeta struct {
-	ZoneLength int    `json:"zoneLength"`
-	Sort       string `json:"sort"`
-	DurationMS int64  `json:"durationMS"`
+	ZoneLength int     `json:"zoneLength"`
+	Sort       string  `json:"sort"`
+	DurationMS float64 `json:"durationMS"`
 }
 
 // shuffleZone performs a shuffle operation on a zone, returning
@@ -184,7 +184,7 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 		sortResponse.Meta = &SortZoneMeta{
 			ZoneLength: len(zone.Items),
 			Sort:       req.Sort,
-			DurationMS: duration.Milliseconds(),
+			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
 		}
 	}
 
