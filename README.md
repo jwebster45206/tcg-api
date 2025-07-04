@@ -74,7 +74,7 @@ DeckState is a runtime state of a deck during gameplay. It includes the deck tem
 Zone is a collection of cards and groups within a specific area of the game. Zones can represent different game states like draw piles, discard piles, hands, etc.
 
 #### Endpoints
-- `/v1/deck-states` - Deck state / deck operations (in progress)
+- `/v1/deckstates` - Deck state / deck operations (in progress)
 
 ## Security (TODO)
 

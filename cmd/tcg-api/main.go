@@ -133,8 +133,8 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	mux.Handle("/v1/decks", deckHandler)
 	mux.Handle("/v1/decks/", deckHandler)
 
-	mux.Handle("/v1/deck-states", deckStateHandler)
-	mux.Handle("/v1/deck-states/", deckStateHandler)
+	mux.Handle("/v1/deckstates", deckStateHandler)
+	mux.Handle("/v1/deckstates/", deckStateHandler)
 
 	return mux
 }
