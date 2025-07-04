@@ -79,10 +79,12 @@ Zone is a collection of cards and groups within a specific area of the game. Zon
   - Supported actions: `add-zone`, `remove-zone`, `sort-zone`, `move-cards`
 
 TODO: Implement move cards. Performance notes:
-- Removing cards from beginning or middle of slice is expensive
-- Removing from end is not; so for draw, pop from the 
-- Use `slice = slice[:len(slice)-1]` for efficient end removal
-- Setting sizes for zones when possible would be good
+- Use `slice = slice[:len(slice)-1]` for efficient end-of-slice removal. 
+- Indexes are ordered left to right and/or bottom to top
+- bottom of deck = start of slice
+- left of hand = start of slice
+- top of deck = end of slice
+- right of hand = end of slice
 
 ## Security (TODO)
 
