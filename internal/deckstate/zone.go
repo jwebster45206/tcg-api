@@ -26,9 +26,6 @@ const (
 	ZoneNameDiscard = "discard" // Discard pile, cards are face up
 
 	ZoneSizeUnlimited = 0 // Special size for unlimited zones
-
-	// Sort types
-	SortTypeShuffle = "shuffle"
 )
 
 // ZoneItem represents something that can exist in a zone. In most cases, this will

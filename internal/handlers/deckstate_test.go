@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -594,22 +595,44 @@ func TestDeckStateHandler_SortZoneAction(t *testing.T) {
 	mockStateStorage := state.NewMockDeckStateStorage()
 	handler := NewDeckStateHandler(mockStorage, mockStateStorage, logger)
 
+	// Create a test deck state with a draw zone
 	deckStateID := uuid.New().String()
-	req := httptest.NewRequest(http.MethodPost, "/v1/deckstates/"+deckStateID+"/actions/sort-zone", nil)
+	sampleDeckState := &deckstate.DeckState{
+		ID:          deckStateID,
+		PlayerCount: 2,
+		Zones: map[string]deckstate.Zone{
+			"draw": deckstate.NewZone("draw", deckstate.ZoneTypeDraw, 52),
+		},
+	}
+	_ = mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
+
+	// Create request body
+	requestBody := map[string]string{
+		"zone": "draw",
+		"sort": "shuffle",
+	}
+	body, _ := json.Marshal(requestBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/deckstates/"+deckStateID+"/actions/sort-zone", strings.NewReader(string(body)))
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNotImplemented {
-		t.Errorf("Expected status %d, got %d", http.StatusNotImplemented, w.Code)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response ErrorResponse
+	var response SortZoneResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to unmarshal response: %v", err)
 	}
 
-	if response.Error != errStrNotImplemented {
-		t.Errorf("Expected error '%s', got '%s'", errStrNotImplemented, response.Error)
+	if response.Zone == nil {
+		t.Error("Expected zone in response, got nil")
+	}
+
+	if response.Zone.Name != "draw" {
+		t.Errorf("Expected zone name 'draw', got '%s'", response.Zone.Name)
 	}
 }
