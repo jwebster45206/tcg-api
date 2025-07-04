@@ -29,31 +29,26 @@ func NewDeckStateHandler(storage storage.Storage, stateStorage state.DeckStateSt
 }
 
 func (h *DeckStateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, "/v1/deck-states")
+	path := strings.TrimPrefix(r.URL.Path, "/v1/deckstates")
 
 	switch r.Method {
 	case http.MethodGet:
 		if path != "" && path != "/" {
-			// GET /deck-states/{id} - Get specific deck state
 			stateID := strings.Trim(path, "/")
 			h.getDeckState(w, r, stateID)
 		} else {
-			// GET /deck-states - Missing UUID, this is an error
 			http.Error(w, "Deck state ID required", http.StatusBadRequest)
 		}
 
 	case http.MethodPost:
 		if path == "" || path == "/" {
-			// POST /deck-states - Create new deck state
 			h.createDeckState(w, r)
-			//http.Error(w, "Create deck state not implemented", http.StatusNotImplemented)
 		} else {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
 
 	case http.MethodDelete:
 		if path != "" && path != "/" {
-			// DELETE /deck-states/{id} - Delete deck state
 			stateID := strings.Trim(path, "/")
 			h.deleteDeckState(w, r, stateID)
 		} else {
@@ -158,7 +153,6 @@ func (h *DeckStateHandler) createDeckState(w http.ResponseWriter, r *http.Reques
 	writeJSONResponse(w, http.StatusCreated, deckState)
 }
 
-// getDeckState handles GET /deck-states/{id}
 func (h *DeckStateHandler) getDeckState(w http.ResponseWriter, r *http.Request, stateID string) {
 	// Validate UUID format
 	_, err := uuid.Parse(stateID)
@@ -198,7 +192,6 @@ func (h *DeckStateHandler) getDeckState(w http.ResponseWriter, r *http.Request, 
 	writeJSONResponse(w, http.StatusOK, deckState)
 }
 
-// deleteDeckState handles DELETE /deck-states/{id}
 func (h *DeckStateHandler) deleteDeckState(w http.ResponseWriter, r *http.Request, stateID string) {
 	// Validate UUID format
 	_, err := uuid.Parse(stateID)
