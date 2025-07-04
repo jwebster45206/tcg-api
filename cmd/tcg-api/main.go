@@ -15,6 +15,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
+	"github.com/jwebster45206/tcg-api/internal/state"
 	"github.com/jwebster45206/tcg-api/internal/storage"
 )
 
@@ -102,9 +103,7 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 
 	sto, err := storage.NewMySQLStorage(cfg.DB, readerConfig, logger)
 	if err != nil {
-		logger.Error("Failed to initialize MySQL storage, falling back to mock storage",
-			slog.Any("error", err))
-		sto = storage.NewMockStorage()
+		log.Fatal("Failed to initialize MySQL storage")
 	}
 
 	redisClient := redis.NewClient(&redis.Options{
@@ -112,11 +111,13 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
+	state := state.NewRedisStorage(redisClient)
 
 	gameCardsHandler := handlers.NewGameCardsHandler(sto, logger)
 	imageCardsHandler := handlers.NewImageCardsHandler(sto, logger)
 	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
 	deckHandler := handlers.NewDecksHandler(sto, logger)
+	deckStateHandler := handlers.NewDeckStateHandler(sto, state, logger)
 
 	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, redisClient))
 
@@ -131,6 +132,9 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 
 	mux.Handle("/v1/decks", deckHandler)
 	mux.Handle("/v1/decks/", deckHandler)
+
+	mux.Handle("/v1/deck-states", deckStateHandler)
+	mux.Handle("/v1/deck-states/", deckStateHandler)
 
 	return mux
 }

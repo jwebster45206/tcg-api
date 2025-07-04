@@ -1,6 +1,9 @@
 package deckstate
 
-import "github.com/jwebster45206/tcg-api/internal/deckdef"
+import (
+	"github.com/google/uuid"
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
+)
 
 type Facing string
 type Orientation string
@@ -40,7 +43,7 @@ func NewDeckState(deck deckdef.Deck, playerCount int) *DeckState {
 	}
 
 	return &DeckState{
-		ID:          deck.ID.String(),
+		ID:          uuid.New().String(),
 		Deck:        deck,
 		PlayerCount: playerCount,
 		Zones:       zones,
