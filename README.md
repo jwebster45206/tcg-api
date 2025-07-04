@@ -74,7 +74,17 @@ DeckState is a runtime state of a deck during gameplay. It includes the deck tem
 Zone is a collection of cards and groups within a specific area of the game. Zones can represent different game states like draw piles, discard piles, hands, etc.
 
 #### Endpoints
-- `/v1/deckstates` - Deck state / deck operations (in progress)
+- `/v1/deckstates` - Deck state ✅
+- `/v1/deckstates/{id}/actions/{actionName}` - Actions on a deck state (in progress)
+  - Supported actions: `add-zone`, `remove-zone`, `sort-zone`, `move-cards`
+
+TODO: Implement move cards. Performance notes:
+- Use `slice = slice[:len(slice)-1]` for efficient end-of-slice removal. 
+- Indexes are ordered left to right and/or bottom to top
+- bottom of deck = start of slice
+- left of hand = start of slice
+- top of deck = end of slice
+- right of hand = end of slice
 
 ## Security (TODO)
 

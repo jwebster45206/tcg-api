@@ -24,6 +24,8 @@ const (
 	// Reserved Zone Names
 	ZoneNameDraw    = "draw"    // Draw pile, cards are face down
 	ZoneNameDiscard = "discard" // Discard pile, cards are face up
+
+	ZoneSizeUnlimited = 0 // Special size for unlimited zones
 )
 
 // ZoneItem represents something that can exist in a zone. In most cases, this will
@@ -90,7 +92,8 @@ type Zone struct {
 }
 
 // NewZone creates a new zone with default settings based on zone type
-func NewZone(name string, zoneType ZoneType) Zone {
+// For unknown/unlimited size, use ZoneSizeUnlimited (0).
+func NewZone(name string, zoneType ZoneType, size int) Zone {
 	var defaultFacing Facing
 
 	// Set default facing based on zone type
@@ -111,7 +114,7 @@ func NewZone(name string, zoneType ZoneType) Zone {
 		Name:          name,
 		Type:          zoneType,
 		DefaultFacing: defaultFacing,
-		Items:         make([]ZoneItem, 0),
+		Items:         make([]ZoneItem, 0, size),
 	}
 }
 

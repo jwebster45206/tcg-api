@@ -34,6 +34,11 @@ func (h *DeckStateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		if path != "" && path != "/" {
+			// Check if it's an action endpoint
+			if strings.Contains(path, "/actions/") {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
 			stateID := strings.Trim(path, "/")
 			h.getDeckState(w, r, stateID)
 		} else {
@@ -43,12 +48,19 @@ func (h *DeckStateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		if path == "" || path == "/" {
 			h.createDeckState(w, r)
+		} else if strings.Contains(path, "/actions/") {
+			h.handleAction(w, r, path)
 		} else {
 			http.Error(w, "Method not allowed for this path", http.StatusMethodNotAllowed)
 		}
 
 	case http.MethodDelete:
 		if path != "" && path != "/" {
+			// Check if it's an action endpoint
+			if strings.Contains(path, "/actions/") {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
 			stateID := strings.Trim(path, "/")
 			h.deleteDeckState(w, r, stateID)
 		} else {
@@ -248,4 +260,87 @@ func (h *DeckStateHandler) deleteDeckState(w http.ResponseWriter, r *http.Reques
 		slog.String("deck_state_id", stateID))
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleAction routes action requests to the appropriate handler
+func (h *DeckStateHandler) handleAction(w http.ResponseWriter, r *http.Request, path string) {
+	// Parse path: /{id}/actions/{actionName}
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) != 3 || parts[1] != "actions" {
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "Invalid action path format. Expected /{id}/actions/{actionName}",
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	stateID := parts[0]
+	actionName := parts[2]
+
+	// Validate UUID format
+	_, err := uuid.Parse(stateID)
+	if err != nil {
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "Invalid deck state ID format",
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	// Route to specific action handler
+	switch actionName {
+	case "add-zone":
+		h.handleAddZone(w, r, stateID)
+	case "remove-zone":
+		h.handleRemoveZone(w, r, stateID)
+	case "sort-zone":
+		h.handleSortZone(w, r, stateID)
+	default:
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "Unsupported action: " + actionName,
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+	}
+}
+
+// handleAddZone adds a new zone to a deck state
+func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request, stateID string) {
+	h.logger.Info("Add zone action requested",
+		slog.String("operation", "add_zone"),
+		slog.String("deck_state_id", stateID))
+
+	response := ErrorResponse{
+		Error:   errStrNotImplemented,
+		Message: "Add zone action not implemented yet",
+	}
+	writeJSONResponse(w, http.StatusNotImplemented, response)
+}
+
+// handleRemoveZone removes a zone from a deck state
+func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Request, stateID string) {
+	h.logger.Info("Remove zone action requested",
+		slog.String("operation", "remove_zone"),
+		slog.String("deck_state_id", stateID))
+
+	response := ErrorResponse{
+		Error:   errStrNotImplemented,
+		Message: "Remove zone action not implemented yet",
+	}
+	writeJSONResponse(w, http.StatusNotImplemented, response)
+}
+
+// handleSortZone sorts cards within a zone
+func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request, stateID string) {
+	h.logger.Info("Sort zone action requested",
+		slog.String("operation", "sort_zone"),
+		slog.String("deck_state_id", stateID))
+
+	response := ErrorResponse{
+		Error:   errStrNotImplemented,
+		Message: "Sort zone action not implemented yet",
+	}
+	writeJSONResponse(w, http.StatusNotImplemented, response)
 }

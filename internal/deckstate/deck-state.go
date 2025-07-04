@@ -36,10 +36,10 @@ func NewDeckState(deck deckdef.Deck, playerCount int) *DeckState {
 			}
 		}
 
-		drawZone := NewZone(ZoneNameDraw, ZoneTypeDraw)
+		drawZone := NewZone(ZoneNameDraw, ZoneTypeDraw, deck.Cards.TotalCount)
 		drawZone.Items = drawItems
 		zones[ZoneNameDraw] = drawZone
-		zones[ZoneNameDiscard] = NewZone(ZoneNameDiscard, ZoneTypeDiscard)
+		zones[ZoneNameDiscard] = NewZone(ZoneNameDiscard, ZoneTypeDiscard, ZoneSizeUnlimited)
 	}
 
 	return &DeckState{
