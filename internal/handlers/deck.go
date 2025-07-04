@@ -541,3 +541,38 @@ func shouldIncludeCards(includeParam string) bool {
 	}
 	return false
 }
+
+// deckCardsChangedFromInput compares current deck cards with a new card collection input to determine if they've changed
+// Returns true if the cards are different (different cards, quantities, or order)
+func deckCardsChangedFromInput(current []*deckdef.CardWithQuantity, newCollection *deckdef.CardCollectionInput) bool {
+	// If both are empty, no change
+	if (len(current) == 0) && (newCollection == nil || len(newCollection.Items) == 0) {
+		return false
+	}
+
+	// If different number of unique cards, changed
+	if len(current) != len(newCollection.Items) {
+		return true
+	}
+
+	// Create maps for comparison (card ID -> quantity)
+	currentMap := make(map[uuid.UUID]int)
+	for _, cardWithQty := range current {
+		currentMap[cardWithQty.Card.GetID()] = cardWithQty.Quantity
+	}
+
+	newMap := make(map[uuid.UUID]int)
+	for _, cardInput := range newCollection.Items {
+		newMap[cardInput.Card.ID] = cardInput.Quantity
+	}
+
+	// Compare the maps
+	for cardID, currentQty := range currentMap {
+		newQty, exists := newMap[cardID]
+		if !exists || currentQty != newQty {
+			return true
+		}
+	}
+
+	return false
+}

@@ -12,6 +12,7 @@ import (
 type DeckStateStorage interface {
 	SaveDeckState(ctx context.Context, gameID string, state *deckstate.DeckState) error
 	GetDeckState(ctx context.Context, gameID string) (*deckstate.DeckState, error)
+	DeleteDeckState(ctx context.Context, gameID string) error
 }
 
 type RedisStorage struct {
@@ -52,4 +53,9 @@ func (r *RedisStorage) GetDeckState(ctx context.Context, gameID string) (*deckst
 		return nil, err
 	}
 	return &state, nil
+}
+
+func (r *RedisStorage) DeleteDeckState(ctx context.Context, gameID string) error {
+	key := deckStateKeyPrefix + gameID
+	return r.client.Del(ctx, key).Err()
 }
