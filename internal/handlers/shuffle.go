@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jwebster45206/tcg-api/internal/deckstate"
+	"github.com/jwebster45206/tcg-api/internal/shuffle"
 )
 
 const (
@@ -33,14 +34,14 @@ type SortZoneMeta struct {
 	DurationMS int64  `json:"durationMS"`
 }
 
-// shuffleZone performs a shuffle operation on a zone
-// TODO: Implement actual shuffle logic
+// shuffleZone performs a shuffle operation on a zone, returning
+// a measurement of the time taken to perform the shuffle.
 func shuffleZone(zone *deckstate.Zone) (time.Duration, error) {
 	start := time.Now()
-
-	// TODO: Implement Fisher-Yates shuffle algorithm
-	// For now, we'll just return the duration as if we did something
-
+	err := shuffle.FisherYatesShuffle(zone.Items)
+	if err != nil {
+		return 0, err
+	}
 	duration := time.Since(start)
 	return duration, nil
 }
