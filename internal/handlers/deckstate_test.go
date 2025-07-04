@@ -246,7 +246,7 @@ func TestDeckStateHandler_GetDeckState(t *testing.T) {
 			name:        "successful get",
 			deckStateID: deckStateID,
 			setupMocks: func(mockStorage storage.Storage, mockStateStorage *state.MockDeckStateStorage) {
-				mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
+				_ = mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
 			},
 			expectedStatus: http.StatusOK,
 			expectError:    false,
@@ -360,7 +360,7 @@ func TestDeckStateHandler_DeleteDeckState(t *testing.T) {
 			name:        "successful delete",
 			deckStateID: deckStateID,
 			setupMocks: func(mockStorage storage.Storage, mockStateStorage *state.MockDeckStateStorage) {
-				mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
+				_ = mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
 			},
 			expectedStatus: http.StatusNoContent,
 			expectError:    false,
@@ -396,7 +396,7 @@ func TestDeckStateHandler_DeleteDeckState(t *testing.T) {
 			name:        "storage delete error",
 			deckStateID: deckStateID,
 			setupMocks: func(mockStorage storage.Storage, mockStateStorage *state.MockDeckStateStorage) {
-				mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
+				_ = mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)
 				mockStateStorage.SetDeleteError(errors.New("redis delete failed"))
 			},
 			expectedStatus: http.StatusInternalServerError,
