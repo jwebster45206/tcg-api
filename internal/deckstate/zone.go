@@ -1,6 +1,11 @@
 package deckstate
 
-import "github.com/jwebster45206/tcg-api/internal/deckdef"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
+)
 
 const (
 	FaceDown Facing = "face-down"
@@ -108,4 +113,183 @@ func NewZone(name string, zoneType ZoneType) Zone {
 		DefaultFacing: defaultFacing,
 		Items:         make([]ZoneItem, 0),
 	}
+}
+
+// ZoneItemJSON represents a ZoneItem for JSON marshaling/unmarshaling
+type ZoneItemJSON struct {
+	Type string          `json:"type"` // "card" or "group"
+	Data json.RawMessage `json:"data"`
+}
+
+// MarshalJSON custom marshaler for Zone
+func (z Zone) MarshalJSON() ([]byte, error) {
+	// Convert ZoneItems to ZoneItemJSON
+	itemsJSON := make([]ZoneItemJSON, len(z.Items))
+	for i, item := range z.Items {
+		var itemType string
+		var itemData json.RawMessage
+		var err error
+
+		switch v := item.(type) {
+		case CardInZone:
+			itemType = "card"
+			itemData, err = json.Marshal(v)
+		case GroupInZone:
+			itemType = "group"
+			itemData, err = json.Marshal(v)
+		default:
+			return nil, fmt.Errorf("unknown ZoneItem type: %T", v)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		itemsJSON[i] = ZoneItemJSON{
+			Type: itemType,
+			Data: itemData,
+		}
+	}
+
+	// Create a temporary struct for marshaling
+	temp := struct {
+		Name          string         `json:"name"`
+		Type          ZoneType       `json:"type"`
+		DefaultFacing Facing         `json:"default_facing"`
+		Items         []ZoneItemJSON `json:"items"`
+	}{
+		Name:          z.Name,
+		Type:          z.Type,
+		DefaultFacing: z.DefaultFacing,
+		Items:         itemsJSON,
+	}
+
+	return json.Marshal(temp)
+}
+
+// UnmarshalJSON custom unmarshaler for Zone
+func (z *Zone) UnmarshalJSON(data []byte) error {
+	// Temporary struct for unmarshaling
+	temp := struct {
+		Name          string         `json:"name"`
+		Type          ZoneType       `json:"type"`
+		DefaultFacing Facing         `json:"default_facing"`
+		Items         []ZoneItemJSON `json:"items"`
+	}{}
+
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Set basic fields
+	z.Name = temp.Name
+	z.Type = temp.Type
+	z.DefaultFacing = temp.DefaultFacing
+
+	// Convert ZoneItemJSON back to ZoneItems
+	z.Items = make([]ZoneItem, len(temp.Items))
+	for i, itemJSON := range temp.Items {
+		switch itemJSON.Type {
+		case "card":
+			var card CardInZone
+			if err := json.Unmarshal(itemJSON.Data, &card); err != nil {
+				return fmt.Errorf("failed to unmarshal CardInZone: %w", err)
+			}
+			z.Items[i] = card
+		case "group":
+			var group GroupInZone
+			if err := json.Unmarshal(itemJSON.Data, &group); err != nil {
+				return fmt.Errorf("failed to unmarshal GroupInZone: %w", err)
+			}
+			z.Items[i] = group
+		default:
+			return fmt.Errorf("unknown ZoneItem type: %s", itemJSON.Type)
+		}
+	}
+
+	return nil
+}
+
+// CardInZoneJSON represents a CardInZone for JSON marshaling/unmarshaling
+type CardInZoneJSON struct {
+	Card        json.RawMessage `json:"card"`
+	Facing      *Facing         `json:"facing,omitempty"`
+	Orientation *Orientation    `json:"orientation,omitempty"`
+}
+
+// MarshalJSON custom marshaler for CardInZone
+func (c CardInZone) MarshalJSON() ([]byte, error) {
+	// Marshal the card directly, then add card_type
+	cardJSON, err := json.Marshal(c.Card)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse the marshaled card to add card_type
+	var cardMap map[string]interface{}
+	if err := json.Unmarshal(cardJSON, &cardMap); err != nil {
+		return nil, err
+	}
+
+	// Add the card_type field
+	cardMap["card_type"] = c.Card.GetCardType()
+
+	// Re-marshal with card_type included
+	cardWithTypeJSON, err := json.Marshal(cardMap)
+	if err != nil {
+		return nil, err
+	}
+
+	result := CardInZoneJSON{
+		Card:        cardWithTypeJSON,
+		Facing:      c.Facing,
+		Orientation: c.Orientation,
+	}
+
+	return json.Marshal(result)
+}
+
+// UnmarshalJSON custom unmarshaler for CardInZone
+func (c *CardInZone) UnmarshalJSON(data []byte) error {
+	var temp CardInZoneJSON
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	c.Facing = temp.Facing
+	c.Orientation = temp.Orientation
+
+	// Parse the card type to determine which struct to unmarshal into
+	var cardTypeInfo struct {
+		CardType string `json:"card_type"`
+	}
+	if err := json.Unmarshal(temp.Card, &cardTypeInfo); err != nil {
+		return err
+	}
+
+	// Unmarshal into the appropriate card type
+	switch cardTypeInfo.CardType {
+	case deckdef.TypePlayingCard:
+		var card deckdef.PlayingCard
+		if err := json.Unmarshal(temp.Card, &card); err != nil {
+			return err
+		}
+		c.Card = &card
+	case deckdef.TypeImageCard:
+		var card deckdef.ImageCard
+		if err := json.Unmarshal(temp.Card, &card); err != nil {
+			return err
+		}
+		c.Card = &card
+	case deckdef.TypeGameCard:
+		var card deckdef.GameCard
+		if err := json.Unmarshal(temp.Card, &card); err != nil {
+			return err
+		}
+		c.Card = &card
+	default:
+		return fmt.Errorf("unknown card type: %s", cardTypeInfo.CardType)
+	}
+
+	return nil
 }

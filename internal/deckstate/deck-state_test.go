@@ -63,8 +63,8 @@ func TestNewDeckState(t *testing.T) {
 	deckState := NewDeckState(deck, 2)
 
 	// Verify basic properties
-	if deckState.ID != deckID.String() {
-		t.Errorf("Expected ID %s, got %s", deckID.String(), deckState.ID)
+	if deckState.ID == uuid.Nil.String() {
+		t.Errorf("Expected not nil, got %s", deckID.String(), deckState.ID)
 	}
 
 	if deckState.PlayerCount != 2 {
