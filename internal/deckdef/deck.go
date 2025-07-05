@@ -120,3 +120,21 @@ func (d *DeckInput) Validate() error {
 	}
 	return nil
 }
+
+// ExpandCards returns a slice of individual cards based on the deck's card collection.
+// Each card in the collection is repeated according to its quantity.
+// This is useful for operations that need to work with individual card instances
+// rather than card types with quantities.
+func (d *Deck) ExpandCards() []CardInterface {
+	if d.Cards == nil {
+		return nil
+	}
+
+	expanded := make([]CardInterface, 0, d.Cards.TotalCount)
+	for _, cardWithQty := range d.Cards.Items {
+		for i := 0; i < cardWithQty.Quantity; i++ {
+			expanded = append(expanded, cardWithQty.Card)
+		}
+	}
+	return expanded
+}

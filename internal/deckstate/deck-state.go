@@ -25,15 +25,14 @@ func NewDeckState(deck deckdef.Deck, playerCount int) *DeckState {
 
 	if deck.Cards != nil {
 		var drawItems []ZoneItem
-		for _, cardWithQty := range deck.Cards.Items {
-			for i := 0; i < cardWithQty.Quantity; i++ {
-				cardInZone := CardInZone{
-					Card:        cardWithQty.Card,
-					Facing:      nil, // zone default
-					Orientation: nil, // zone default
-				}
-				drawItems = append(drawItems, cardInZone)
+		expandedCards := deck.ExpandCards()
+		for _, card := range expandedCards {
+			cardInZone := CardInZone{
+				Card:        card,
+				Facing:      nil, // zone default
+				Orientation: nil, // zone default
 			}
+			drawItems = append(drawItems, cardInZone)
 		}
 
 		drawZone := NewZone(ZoneNameDraw, ZoneTypeDraw, deck.Cards.TotalCount)

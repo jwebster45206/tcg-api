@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/deckstate"
 	"github.com/jwebster45206/tcg-api/internal/shuffle"
 )
 
 const (
-	SortTypeShuffle = "shuffle"
+	SortTypeShuffle    = "shuffle"
+	SortTypeDefinition = "definition"
 )
 
 // SortZoneRequest represents the request to sort a zone
@@ -39,6 +41,18 @@ type SortZoneMeta struct {
 func shuffleZone(zone *deckstate.Zone) (time.Duration, error) {
 	start := time.Now()
 	err := shuffle.FisherYatesShuffle(zone.Items)
+	if err != nil {
+		return 0, err
+	}
+	duration := time.Since(start)
+	return duration, nil
+}
+
+// sortZoneByDefinition performs a definition sort operation on a zone, returning
+// a measurement of the time taken to perform the sort.
+func sortZoneByDefinition(zone *deckstate.Zone, deck *deckdef.Deck) (time.Duration, error) {
+	start := time.Now()
+	err := shuffle.DefinitionSort(zone.Items, deck)
 	if err != nil {
 		return 0, err
 	}
@@ -82,10 +96,10 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if req.Sort != SortTypeShuffle {
+	if req.Sort != SortTypeShuffle && req.Sort != SortTypeDefinition {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
-			Message: "only 'shuffle' sort type is supported",
+			Message: "only 'shuffle' and 'definition' sort types are supported",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
@@ -125,17 +139,28 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Perform the shuffle operation
-	duration, err := shuffleZone(&zone)
+	// Perform the sort operation
+	var duration time.Duration
+
+	switch req.Sort {
+	case SortTypeShuffle:
+		// Fisher-Yates randomization of the zone
+		duration, err = shuffleZone(&zone)
+	case SortTypeDefinition:
+		// Reset to deck definition
+		duration, err = sortZoneByDefinition(&zone, &deckState.Deck)
+	}
+
 	if err != nil {
-		h.logger.Error("Failed to shuffle zone",
-			slog.String("operation", "shuffle_zone"),
+		h.logger.Error("Failed to sort zone",
+			slog.String("operation", "sort_zone"),
 			slog.String("deck_state_id", stateID),
 			slog.String("zone", req.Zone),
+			slog.String("sort_type", req.Sort),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   errStrInternal,
-			Message: "Failed to shuffle zone",
+			Message: "Failed to sort zone",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
 		return
@@ -143,14 +168,15 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 
 	deckState.Zones[req.Zone] = zone
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
-		h.logger.Error("Failed to save deck state after shuffle",
-			slog.String("operation", "save_deck_state_after_shuffle"),
+		h.logger.Error("Failed to save deck state after sort",
+			slog.String("operation", "save_deck_state_after_sort"),
 			slog.String("deck_state_id", stateID),
 			slog.String("zone", req.Zone),
+			slog.String("sort_type", req.Sort),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   errStrInternal,
-			Message: "Failed to save shuffled zone",
+			Message: "Failed to save sorted zone",
 		}
 		writeJSONResponse(w, http.StatusInternalServerError, response)
 		return
