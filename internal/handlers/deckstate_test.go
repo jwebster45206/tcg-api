@@ -537,58 +537,6 @@ func TestDeckStateHandler_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestDeckStateHandler_AddZoneAction(t *testing.T) {
-	logger := config.NewLogger(config.LoggerConfig{Level: "ERROR"})
-	mockStorage := storage.NewMockStorage()
-	mockStateStorage := state.NewMockDeckStateStorage()
-	handler := NewDeckStateHandler(mockStorage, mockStateStorage, logger)
-
-	deckStateID := uuid.New().String()
-	req := httptest.NewRequest(http.MethodPost, "/v1/deckstates/"+deckStateID+"/actions/add-zone", nil)
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotImplemented {
-		t.Errorf("Expected status %d, got %d", http.StatusNotImplemented, w.Code)
-	}
-
-	var response ErrorResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		t.Errorf("Failed to unmarshal response: %v", err)
-	}
-
-	if response.Error != errStrNotImplemented {
-		t.Errorf("Expected error '%s', got '%s'", errStrNotImplemented, response.Error)
-	}
-}
-
-func TestDeckStateHandler_RemoveZoneAction(t *testing.T) {
-	logger := config.NewLogger(config.LoggerConfig{Level: "ERROR"})
-	mockStorage := storage.NewMockStorage()
-	mockStateStorage := state.NewMockDeckStateStorage()
-	handler := NewDeckStateHandler(mockStorage, mockStateStorage, logger)
-
-	deckStateID := uuid.New().String()
-	req := httptest.NewRequest(http.MethodPost, "/v1/deckstates/"+deckStateID+"/actions/remove-zone", nil)
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotImplemented {
-		t.Errorf("Expected status %d, got %d", http.StatusNotImplemented, w.Code)
-	}
-
-	var response ErrorResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-		t.Errorf("Failed to unmarshal response: %v", err)
-	}
-
-	if response.Error != errStrNotImplemented {
-		t.Errorf("Expected error '%s', got '%s'", errStrNotImplemented, response.Error)
-	}
-}
-
 func TestDeckStateHandler_SortZoneAction(t *testing.T) {
 	logger := config.NewLogger(config.LoggerConfig{Level: "ERROR"})
 	mockStorage := storage.NewMockStorage()
