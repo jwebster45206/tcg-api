@@ -16,11 +16,11 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 
 ### Deck Management
 - Deck creation and management
-- Deck state management (TODO)
+- Deck state management 
 
 ### Deck State Management
-- Create a mutable instance of an immutable deck (in-progress)
-- Shuffle (TODO)
+- Create a mutable instance of an immutable deck 
+- Shuffle 
 - Draw (TODO)
 
 ## Resource Design 
@@ -76,9 +76,10 @@ Zone is a collection of cards and groups within a specific area of the game. Zon
 #### Endpoints
 - `/v1/deckstates` - Deck state ✅
 - `/v1/deckstates/{id}/actions/{actionName}` - Actions on a deck state (in progress)
-  - Supported actions: `add-zone`, `remove-zone`, `sort-zone`, `move-cards`
+  - Supported actions: `sort-zone` ✅
+  - TODO: `add-zone`, `remove-zone`, `move-cards` 
 
-TODO: Implement move cards. Performance notes:
+Performance and modeling notes:
 - Use `slice = slice[:len(slice)-1]` for efficient end-of-slice removal. 
 - Indexes are ordered left to right and/or bottom to top
 - bottom of deck = start of slice
@@ -96,3 +97,4 @@ TODO: Implement move cards. Performance notes:
 1. Role-based access control
    - Admin roles for card management
    - Player roles for deck management and simulation
+   - Card details dependent on card facing and user claims
