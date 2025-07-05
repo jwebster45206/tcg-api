@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/deckdef"
 )
 
@@ -34,6 +35,7 @@ const (
 type ZoneItem interface {
 	Count() int
 	GetCards() []CardInZone // Returns cards in this item
+	GetID() uuid.UUID       // Get a card ID representing this item
 }
 
 // CardInZone represents a card with its state within a specific zone
@@ -53,6 +55,13 @@ func (c CardInZone) Count() int {
 func (c CardInZone) GetCards() []CardInZone {
 	return []CardInZone{c} // Returns itself as the only card in this item
 }
+
+func (c CardInZone) GetID() uuid.UUID {
+	return c.Card.GetID()
+}
+
+// assert that CardInZone implements ZoneItem interface
+var _ ZoneItem = CardInZone{}
 
 // GroupInZone represents a group of cards within a zone.
 // This is mostly useful for games where cards can be laid down in groupings.
@@ -80,6 +89,16 @@ func (g GroupInZone) GetCards() []CardInZone {
 	}
 	return resolvedCards
 }
+
+func (g GroupInZone) GetID() uuid.UUID {
+	if len(g.Cards) == 0 {
+		return uuid.Nil
+	}
+	return g.Cards[0].GetID()
+}
+
+// assert that GroupInZone implements ZoneItem interface
+var _ ZoneItem = GroupInZone{}
 
 // Zone is a collection of cards and groups within a specific area of the game.
 // Zones can represent different game states like draw piles, discard piles, hands, etc.
