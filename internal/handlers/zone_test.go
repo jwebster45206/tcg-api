@@ -412,7 +412,9 @@ func TestHandleRemoveZone(t *testing.T) {
 	t.Run("SuccessWithMeta", func(t *testing.T) {
 		// First, re-add the zone since it was removed in the previous test
 		testDeckState.Zones["empty-zone"] = deckstate.NewZone("empty-zone", deckstate.ZoneTypeTable, 0)
-		mockStateStorage.SaveDeckState(ctx, testDeckState.ID, testDeckState)
+		if err := mockStateStorage.SaveDeckState(ctx, testDeckState.ID, testDeckState); err != nil {
+			t.Fatalf("Failed to save test deck state: %v", err)
+		}
 
 		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=empty-zone&include=meta", nil)
 		if err != nil {
