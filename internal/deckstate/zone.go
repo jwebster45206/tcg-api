@@ -138,6 +138,15 @@ func NewZone(name string, zoneType ZoneType, size int) Zone {
 	}
 }
 
+func IsValidZoneType(zoneType ZoneType) bool {
+	switch zoneType {
+	case ZoneTypeDraw, ZoneTypeDiscard, ZoneTypeHand, ZoneTypeTable, ZoneTypeTemporary:
+		return true
+	default:
+		return false
+	}
+}
+
 // ZoneItemJSON represents a ZoneItem for JSON marshaling/unmarshaling
 type ZoneItemJSON struct {
 	Type string          `json:"type"` // "card" or "group"

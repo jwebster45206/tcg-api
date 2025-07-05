@@ -10,37 +10,31 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/deckstate"
 )
 
-// AddZoneRequest represents the request to add a new zone
 type AddZoneRequest struct {
 	Name          string             `json:"name"`
 	Type          deckstate.ZoneType `json:"type"`
 	DefaultFacing *deckstate.Facing  `json:"default_facing,omitempty"`
-	Size          *int               `json:"size,omitempty"` // Optional size hint for initial capacity
+	Size          *int               `json:"size,omitempty"`
 }
 
-// AddZoneResponse represents the response from adding a zone
 type AddZoneResponse struct {
 	Zone *deckstate.Zone `json:"zone"`
 	Meta *AddZoneMeta    `json:"meta,omitempty"`
 }
 
-// AddZoneMeta contains metadata about the add zone operation
 type AddZoneMeta struct {
 	DurationMS float64 `json:"durationMS"`
 }
 
-// RemoveZoneResponse represents the response from removing a zone
 type RemoveZoneResponse struct {
 	Success bool            `json:"success"`
 	Meta    *RemoveZoneMeta `json:"meta,omitempty"`
 }
 
-// RemoveZoneMeta contains metadata about the remove zone operation
 type RemoveZoneMeta struct {
 	DurationMS float64 `json:"durationMS"`
 }
 
-// handleAddZone adds a new zone to a deck state
 func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request, stateID string) {
 	start := time.Now()
 
@@ -48,7 +42,6 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		slog.String("operation", "add_zone"),
 		slog.String("deck_state_id", stateID))
 
-	// Parse request body
 	var req AddZoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response := ErrorResponse{
@@ -59,7 +52,6 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Validate required fields
 	if req.Name == "" {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
@@ -73,6 +65,13 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
 			Message: "type is required",
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	} else if !deckstate.IsValidZoneType(req.Type) {
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "Invalid zone type: " + string(req.Type),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
@@ -102,7 +101,6 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Check if zone name already exists
 	if _, exists := deckState.Zones[req.Name]; exists {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
@@ -112,7 +110,6 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	// Determine size hint (default to 0 for unlimited)
 	sizeHint := 0
 	if req.Size != nil {
 		sizeHint = *req.Size
@@ -126,18 +123,13 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
-	// Create new zone
 	zone := deckstate.NewZone(req.Name, req.Type, sizeHint)
 
-	// Override default facing if provided
 	if req.DefaultFacing != nil {
 		zone.DefaultFacing = *req.DefaultFacing
 	}
 
-	// Add zone to deck state
 	deckState.Zones[req.Name] = zone
-
-	// Save the updated deck state
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
 		h.logger.Error("Failed to save deck state after adding zone",
 			slog.String("operation", "save_deck_state_after_add_zone"),
@@ -153,7 +145,6 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 	}
 
 	duration := time.Since(start)
-
 	h.logger.Info("Successfully added zone",
 		slog.String("operation", "add_zone"),
 		slog.String("deck_state_id", stateID),
@@ -161,12 +152,10 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		slog.String("zone_type", string(req.Type)),
 		slog.Duration("duration", duration))
 
-	// Prepare response
 	addZoneResponse := AddZoneResponse{
 		Zone: &zone,
 	}
 
-	// Include meta if requested via query parameter
 	if r.URL.Query().Get("include") == "meta" {
 		addZoneResponse.Meta = &AddZoneMeta{
 			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
