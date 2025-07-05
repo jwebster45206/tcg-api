@@ -3,7 +3,9 @@ package state
 import (
 	"context"
 	"sync"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/deckstate"
 )
 
@@ -11,17 +13,48 @@ import (
 type MockDeckStateStorage struct {
 	mu     sync.RWMutex
 	states map[string]*deckstate.DeckState
+	locks  map[string]*mockLock
 
 	// For testing error scenarios
 	saveError   error
 	getError    error
 	deleteError error
+	lockError   error
+}
+
+// mockLock implements DeckStateLock for testing
+type mockLock struct {
+	gameID     string
+	ownerID    string
+	expiration time.Time
+	storage    *MockDeckStateStorage
+}
+
+func (l *mockLock) Release() error {
+	l.storage.mu.Lock()
+	defer l.storage.mu.Unlock()
+	delete(l.storage.locks, l.gameID)
+	return nil
+}
+
+func (l *mockLock) IsExpired() bool {
+	return time.Now().After(l.expiration)
+}
+
+func (l *mockLock) OwnerID() string {
+	return l.ownerID
+}
+
+func (l *mockLock) Extend(duration time.Duration) error {
+	l.expiration = time.Now().Add(duration)
+	return nil
 }
 
 // NewMockDeckStateStorage creates a new mock storage
 func NewMockDeckStateStorage() *MockDeckStateStorage {
 	return &MockDeckStateStorage{
 		states: make(map[string]*deckstate.DeckState),
+		locks:  make(map[string]*mockLock),
 	}
 }
 
@@ -144,4 +177,42 @@ func (m *MockDeckStateStorage) HasState(gameID string) bool {
 	defer m.mu.RUnlock()
 	_, exists := m.states[gameID]
 	return exists
+}
+
+// LockDeckState attempts to acquire a lock on the deck state
+func (m *MockDeckStateStorage) LockDeckState(ctx context.Context, gameID string, timeout time.Duration) (DeckStateLock, error) {
+	if m.lockError != nil {
+		return nil, m.lockError
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// Check if already locked
+	if lock, exists := m.locks[gameID]; exists && !lock.IsExpired() {
+		return nil, &LockError{GameID: gameID, Message: "deck state is locked by another process"}
+	}
+
+	// Create new lock
+	ownerID := uuid.New().String()
+	lock := &mockLock{
+		gameID:     gameID,
+		ownerID:    ownerID,
+		expiration: time.Now().Add(timeout),
+		storage:    m,
+	}
+	m.locks[gameID] = lock
+	return lock, nil
+}
+
+// IsLocked checks if a deck state is currently locked
+func (m *MockDeckStateStorage) IsLocked(ctx context.Context, gameID string) (bool, string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	lock, exists := m.locks[gameID]
+	if !exists || lock.IsExpired() {
+		return false, "", nil
+	}
+	return true, lock.OwnerID(), nil
 }
