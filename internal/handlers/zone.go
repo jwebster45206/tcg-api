@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -25,6 +26,17 @@ type AddZoneResponse struct {
 
 // AddZoneMeta contains metadata about the add zone operation
 type AddZoneMeta struct {
+	DurationMS float64 `json:"durationMS"`
+}
+
+// RemoveZoneResponse represents the response from removing a zone
+type RemoveZoneResponse struct {
+	Success bool            `json:"success"`
+	Meta    *RemoveZoneMeta `json:"meta,omitempty"`
+}
+
+// RemoveZoneMeta contains metadata about the remove zone operation
+type RemoveZoneMeta struct {
 	DurationMS float64 `json:"durationMS"`
 }
 
@@ -152,10 +164,119 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 	// Prepare response
 	addZoneResponse := AddZoneResponse{
 		Zone: &zone,
-		Meta: &AddZoneMeta{
+	}
+
+	// Include meta if requested via query parameter
+	if r.URL.Query().Get("include") == "meta" {
+		addZoneResponse.Meta = &AddZoneMeta{
 			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
-		},
+		}
 	}
 
 	writeJSONResponse(w, http.StatusCreated, addZoneResponse)
+}
+
+// handleRemoveZone removes a zone from a deck state
+func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Request, stateID string) {
+	start := time.Now()
+
+	h.logger.Info("Remove zone action requested",
+		slog.String("operation", "remove_zone"),
+		slog.String("deck_state_id", stateID))
+
+	// Get zone name from query parameter
+	zoneName := r.URL.Query().Get("zone")
+	if zoneName == "" {
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "zone parameter is required",
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	ctx := r.Context()
+	deckState, err := h.stateStorage.GetDeckState(ctx, stateID)
+	if err != nil {
+		h.logger.Error("Failed to get deck state for remove zone",
+			slog.String("operation", "get_deck_state_for_remove_zone"),
+			slog.String("deck_state_id", stateID),
+			slog.Any("error", err))
+		response := ErrorResponse{
+			Error:   errStrInternal,
+			Message: "Failed to retrieve deck state",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	if deckState == nil {
+		response := ErrorResponse{
+			Error:   errStrNotFound,
+			Message: "Deck state not found",
+		}
+		writeJSONResponse(w, http.StatusNotFound, response)
+		return
+	}
+
+	// Check if zone exists
+	zone, exists := deckState.Zones[zoneName]
+	if !exists {
+		response := ErrorResponse{
+			Error:   errStrNotFound,
+			Message: "Zone '" + zoneName + "' not found",
+		}
+		writeJSONResponse(w, http.StatusNotFound, response)
+		return
+	}
+
+	// Check if zone is empty
+	if len(zone.Items) > 0 {
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "Cannot remove zone '" + zoneName + "' because it contains " + fmt.Sprintf("%d", len(zone.Items)) + " item(s)",
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	// Remove zone from deck state
+	delete(deckState.Zones, zoneName)
+
+	// Save the updated deck state
+	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
+		h.logger.Error("Failed to save deck state after removing zone",
+			slog.String("operation", "save_deck_state_after_remove_zone"),
+			slog.String("deck_state_id", stateID),
+			slog.String("zone_name", zoneName),
+			slog.Any("error", err))
+		response := ErrorResponse{
+			Error:   errStrInternal,
+			Message: "Failed to remove zone",
+		}
+		writeJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	duration := time.Since(start)
+
+	h.logger.Info("Successfully removed zone",
+		slog.String("operation", "remove_zone"),
+		slog.String("deck_state_id", stateID),
+		slog.String("zone_name", zoneName),
+		slog.Duration("duration", duration))
+
+	// Prepare response
+	removeZoneResponse := RemoveZoneResponse{
+		Success: true,
+	}
+
+	// Include meta if requested via query parameter
+	if r.URL.Query().Get("include") == "meta" {
+		removeZoneResponse.Meta = &RemoveZoneMeta{
+			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
+		}
+	}
+
+	writeJSONResponse(w, http.StatusOK, removeZoneResponse)
 }
