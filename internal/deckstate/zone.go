@@ -17,10 +17,11 @@ const (
 	Rotated  Orientation = "rotated"  // 90 degrees
 	Inverted Orientation = "inverted" // 180 degrees
 
-	ZoneTypeDraw    ZoneType = "draw"
-	ZoneTypeDiscard ZoneType = "discard"
-	ZoneTypeHand    ZoneType = "hand"
-	ZoneTypeTable   ZoneType = "table"
+	ZoneTypeDraw      ZoneType = "draw"
+	ZoneTypeDiscard   ZoneType = "discard"
+	ZoneTypeHand      ZoneType = "hand"
+	ZoneTypeTable     ZoneType = "table"
+	ZoneTypeTemporary ZoneType = "temporary" // Transient zones
 
 	// Reserved Zone Names
 	ZoneNameDraw    = "draw"    // Draw pile, cards are face down

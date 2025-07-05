@@ -396,19 +396,6 @@ func (h *DeckStateHandler) handleAction(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// handleAddZone adds a new zone to a deck state
-func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request, stateID string) {
-	h.logger.Info("Add zone action requested",
-		slog.String("operation", "add_zone"),
-		slog.String("deck_state_id", stateID))
-
-	response := ErrorResponse{
-		Error:   errStrNotImplemented,
-		Message: "Add zone action not implemented yet",
-	}
-	writeJSONResponse(w, http.StatusNotImplemented, response)
-}
-
 // handleRemoveZone removes a zone from a deck state
 func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Request, stateID string) {
 	h.logger.Info("Remove zone action requested",
