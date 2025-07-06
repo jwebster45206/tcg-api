@@ -571,7 +571,7 @@ func TestDeckStateHandler_SortZoneAction(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response SortZoneResponse
+	var response ZoneResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to unmarshal response: %v", err)
 	}

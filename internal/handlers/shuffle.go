@@ -23,19 +23,6 @@ type SortZoneRequest struct {
 	Sort string `json:"sort"`
 }
 
-// SortZoneResponse represents the response from a sort zone operation
-type SortZoneResponse struct {
-	Zone *deckstate.Zone `json:"zone"`
-	Meta *SortZoneMeta   `json:"meta,omitempty"`
-}
-
-// SortZoneMeta contains metadata about the sort operation
-type SortZoneMeta struct {
-	ZoneLength int     `json:"zoneLength"`
-	Sort       string  `json:"sort"`
-	DurationMS float64 `json:"durationMS"`
-}
-
 // shuffleZone performs a shuffle operation on a zone, returning
 // a measurement of the time taken to perform the shuffle.
 func shuffleZone(zone *deckstate.Zone) (time.Duration, error) {
@@ -202,15 +189,18 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 		responseZone.Items = nil
 	}
 
-	sortResponse := SortZoneResponse{
-		Zone: &responseZone,
+	sortResponse := ZoneResponse{
+		Success: true,
+		Zone:    &responseZone,
 	}
 
 	if includeMeta {
-		sortResponse.Meta = &SortZoneMeta{
-			ZoneLength: len(zone.Items),
-			Sort:       req.Sort,
+		zoneLength := len(zone.Items)
+		sortResponse.Meta = &ZoneResponseMeta{
+			Operation:  "sort_zone",
 			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
+			ZoneLength: &zoneLength,
+			Sort:       &req.Sort,
 		}
 	}
 

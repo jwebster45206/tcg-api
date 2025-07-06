@@ -17,32 +17,28 @@ type AddZoneRequest struct {
 	Size          *int               `json:"size,omitempty"`
 }
 
-type AddZoneResponse struct {
-	Zone *deckstate.Zone `json:"zone"`
-	Meta *AddZoneMeta    `json:"meta,omitempty"`
-}
-
-type AddZoneMeta struct {
-	DurationMS float64 `json:"durationMS"`
-}
-
 type RemoveZoneRequest struct {
 	Zone string `json:"zone"`
 }
 
-type RemoveZoneResponse struct {
-	Success bool            `json:"success"`
-	Meta    *RemoveZoneMeta `json:"meta,omitempty"`
+// ZoneResponse represents a unified response for all zone operations
+type ZoneResponse struct {
+	Success bool              `json:"success"`
+	Zone    *deckstate.Zone   `json:"zone,omitempty"`
+	Meta    *ZoneResponseMeta `json:"meta,omitempty"`
 }
 
-type RemoveZoneMeta struct {
+type ZoneResponseMeta struct {
+	Operation  string  `json:"operation"`
 	DurationMS float64 `json:"durationMS"`
+	// Sort-specific fields
+	ZoneLength *int    `json:"zoneLength,omitempty"`
+	Sort       *string `json:"sort,omitempty"`
 }
 
 func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request, stateID string) {
 	start := time.Now()
-
-	h.logger.Info("Add zone action requested",
+	h.logger.Debug("Add zone action requested",
 		slog.String("operation", "add_zone"),
 		slog.String("deck_state_id", stateID))
 
@@ -149,17 +145,19 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 	}
 
 	duration := time.Since(start)
-	addZoneResponse := AddZoneResponse{
-		Zone: &zone,
+	zoneResponse := ZoneResponse{
+		Success: true,
+		Zone:    &zone,
 	}
 
 	if r.URL.Query().Get("include") == "meta" {
-		addZoneResponse.Meta = &AddZoneMeta{
+		zoneResponse.Meta = &ZoneResponseMeta{
+			Operation:  "add_zone",
 			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
 		}
 	}
 
-	writeJSONResponse(w, http.StatusCreated, addZoneResponse)
+	writeJSONResponse(w, http.StatusCreated, zoneResponse)
 }
 
 // handleRemoveZone removes a zone from a deck state
@@ -252,15 +250,16 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 	}
 
 	duration := time.Since(start)
-	removeZoneResponse := RemoveZoneResponse{
+	zoneResponse := ZoneResponse{
 		Success: true,
 	}
 
 	if r.URL.Query().Get("include") == "meta" {
-		removeZoneResponse.Meta = &RemoveZoneMeta{
+		zoneResponse.Meta = &ZoneResponseMeta{
+			Operation:  "remove_zone",
 			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds
 		}
 	}
 
-	writeJSONResponse(w, http.StatusOK, removeZoneResponse)
+	writeJSONResponse(w, http.StatusOK, zoneResponse)
 }

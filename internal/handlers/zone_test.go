@@ -57,17 +57,25 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.Name != "custom-pile" {
-			t.Errorf("Expected zone name 'custom-pile', got '%s'", response.Zone.Name)
+		if !response.Success {
+			t.Error("Expected success to be true")
 		}
 
-		if response.Zone.Type != deckstate.ZoneTypeTable {
-			t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.Name != "custom-pile" {
+				t.Errorf("Expected zone name 'custom-pile', got '%s'", response.Zone.Name)
+			}
+
+			if response.Zone.Type != deckstate.ZoneTypeTable {
+				t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+			}
 		}
 
 		if response.Meta != nil {
@@ -97,23 +105,36 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.Name != "custom-pile-with-meta" {
-			t.Errorf("Expected zone name 'custom-pile-with-meta', got '%s'", response.Zone.Name)
+		if !response.Success {
+			t.Error("Expected success to be true")
 		}
 
-		if response.Zone.Type != deckstate.ZoneTypeTable {
-			t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.Name != "custom-pile-with-meta" {
+				t.Errorf("Expected zone name 'custom-pile-with-meta', got '%s'", response.Zone.Name)
+			}
+
+			if response.Zone.Type != deckstate.ZoneTypeTable {
+				t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+			}
 		}
 
 		if response.Meta == nil {
 			t.Error("Expected meta object when include=meta")
-		} else if response.Meta.DurationMS <= 0 {
-			t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+		} else {
+			if response.Meta.DurationMS <= 0 {
+				t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+			}
+			if response.Meta.Operation != "add_zone" {
+				t.Errorf("Expected operation 'add_zone', got '%s'", response.Meta.Operation)
+			}
 		}
 	})
 
@@ -216,13 +237,21 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.DefaultFacing != deckstate.FaceDown {
-			t.Errorf("Expected default facing 'face-down', got '%s'", response.Zone.DefaultFacing)
+		if !response.Success {
+			t.Error("Expected success to be true")
+		}
+
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.DefaultFacing != deckstate.FaceDown {
+				t.Errorf("Expected default facing 'face-down', got '%s'", response.Zone.DefaultFacing)
+			}
 		}
 	})
 
@@ -247,22 +276,30 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.Name != "minimal-zone" {
-			t.Errorf("Expected zone name 'minimal-zone', got '%s'", response.Zone.Name)
+		if !response.Success {
+			t.Error("Expected success to be true")
 		}
 
-		if response.Zone.Type != deckstate.ZoneTypeHand {
-			t.Errorf("Expected zone type 'hand', got '%s'", response.Zone.Type)
-		}
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.Name != "minimal-zone" {
+				t.Errorf("Expected zone name 'minimal-zone', got '%s'", response.Zone.Name)
+			}
 
-		// Check that default values are set correctly
-		if response.Zone.DefaultFacing != deckstate.InHand {
-			t.Errorf("Expected default facing 'in-hand' for hand zone, got '%s'", response.Zone.DefaultFacing)
+			if response.Zone.Type != deckstate.ZoneTypeHand {
+				t.Errorf("Expected zone type 'hand', got '%s'", response.Zone.Type)
+			}
+
+			// Check that default values are set correctly
+			if response.Zone.DefaultFacing != deckstate.InHand {
+				t.Errorf("Expected default facing 'in-hand' for hand zone, got '%s'", response.Zone.DefaultFacing)
+			}
 		}
 	})
 
@@ -401,7 +438,7 @@ func TestHandleRemoveZone(t *testing.T) {
 				status, http.StatusOK)
 		}
 
-		var response RemoveZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
@@ -441,7 +478,7 @@ func TestHandleRemoveZone(t *testing.T) {
 				status, http.StatusOK)
 		}
 
-		var response RemoveZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
@@ -452,8 +489,13 @@ func TestHandleRemoveZone(t *testing.T) {
 
 		if response.Meta == nil {
 			t.Error("Expected meta object when include=meta")
-		} else if response.Meta.DurationMS <= 0 {
-			t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+		} else {
+			if response.Meta.DurationMS <= 0 {
+				t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+			}
+			if response.Meta.Operation != "remove_zone" {
+				t.Errorf("Expected operation 'remove_zone', got '%s'", response.Meta.Operation)
+			}
 		}
 	})
 
