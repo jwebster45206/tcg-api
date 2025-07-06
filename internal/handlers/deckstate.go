@@ -387,6 +387,8 @@ func (h *DeckStateHandler) handleAction(w http.ResponseWriter, r *http.Request, 
 		h.handleRemoveZone(w, r, stateID)
 	case "sort-zone":
 		h.handleSortZone(w, r, stateID)
+	case "draw-cards":
+		h.handleDrawCards(w, r, stateID)
 	default:
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
