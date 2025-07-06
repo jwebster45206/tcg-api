@@ -10,15 +10,39 @@ import (
 	"github.com/jwebster45206/tcg-api/internal/deckstate"
 )
 
-type AddZoneRequest struct {
-	Name          string             `json:"name"`
-	Type          deckstate.ZoneType `json:"type"`
-	DefaultFacing *deckstate.Facing  `json:"default_facing,omitempty"`
-	Size          *int               `json:"size,omitempty"`
+// ZoneRequest represents a request for zone operations (add/remove)
+type ZoneRequest struct {
+	Name          string              `json:"name"`
+	Type          *deckstate.ZoneType `json:"type,omitempty"` // Optional, defaults to ZoneTypeTemporary for add
+	DefaultFacing *deckstate.Facing   `json:"default_facing,omitempty"`
+	Size          *int                `json:"size,omitempty"`
 }
 
-type RemoveZoneRequest struct {
-	Zone string `json:"zone"`
+// Validate validates the zone request based on operation type
+func (r *ZoneRequest) Validate() error {
+	if r.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	// Validate size hint if provided
+	if r.Size != nil && *r.Size < 0 {
+		return fmt.Errorf("size must be non-negative")
+	}
+	return nil
+}
+
+func (r *ZoneRequest) Normalize() {
+	if r.Type == nil {
+		defaultType := deckstate.ZoneTypeTemporary
+		r.Type = &defaultType
+	}
+}
+
+// GetZoneType returns the zone type, defaulting to ZoneTypeTemporary if not specified
+func (r *ZoneRequest) GetZoneType() deckstate.ZoneType {
+	if r.Type != nil {
+		return *r.Type
+	}
+	return deckstate.ZoneTypeTemporary
 }
 
 // ZoneResponse represents a unified response for all zone operations
@@ -42,8 +66,8 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		slog.String("operation", "add_zone"),
 		slog.String("deck_state_id", stateID))
 
-	var req AddZoneRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var z ZoneRequest
+	if err := json.NewDecoder(r.Body).Decode(&z); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
 			Message: "Invalid JSON in request body",
@@ -52,30 +76,15 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if req.Name == "" {
+	if err := z.Validate(); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
-			Message: "name is required",
+			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
-
-	if req.Type == "" {
-		response := ErrorResponse{
-			Error:   errStrBadRequest,
-			Message: "type is required",
-		}
-		writeJSONResponse(w, http.StatusBadRequest, response)
-		return
-	} else if !deckstate.IsValidZoneType(req.Type) {
-		response := ErrorResponse{
-			Error:   errStrBadRequest,
-			Message: "Invalid zone type: " + string(req.Type),
-		}
-		writeJSONResponse(w, http.StatusBadRequest, response)
-		return
-	}
+	z.Normalize()
 
 	ctx := r.Context()
 	deckState, err := h.stateStorage.GetDeckState(ctx, stateID)
@@ -101,40 +110,32 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	if _, exists := deckState.Zones[req.Name]; exists {
+	if _, exists := deckState.Zones[z.Name]; exists {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
-			Message: "Zone with name '" + req.Name + "' already exists",
+			Message: "Zone with name '" + z.Name + "' already exists",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
 
 	sizeHint := 0
-	if req.Size != nil {
-		sizeHint = *req.Size
-		if sizeHint < 0 {
-			response := ErrorResponse{
-				Error:   errStrBadRequest,
-				Message: "size_hint must be non-negative",
-			}
-			writeJSONResponse(w, http.StatusBadRequest, response)
-			return
-		}
+	if z.Size != nil {
+		sizeHint = *z.Size
 	}
 
-	zone := deckstate.NewZone(req.Name, req.Type, sizeHint)
+	zone := deckstate.NewZone(z.Name, z.GetZoneType(), sizeHint)
 
-	if req.DefaultFacing != nil {
-		zone.DefaultFacing = *req.DefaultFacing
+	if z.DefaultFacing != nil {
+		zone.DefaultFacing = *z.DefaultFacing
 	}
 
-	deckState.Zones[req.Name] = zone
+	deckState.Zones[z.Name] = zone
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
 		h.logger.Error("Failed to save deck state after adding zone",
 			slog.String("operation", "save_deck_state_after_add_zone"),
 			slog.String("deck_state_id", stateID),
-			slog.String("zone_name", req.Name),
+			slog.String("zone_name", z.Name),
 			slog.Any("error", err))
 		response := ErrorResponse{
 			Error:   errStrInternal,
@@ -168,8 +169,8 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 		slog.String("operation", "remove_zone"),
 		slog.String("deck_state_id", stateID))
 
-	// Get zone name from query parameter
-	var req RemoveZoneRequest
+	// Parse request body
+	var req ZoneRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
@@ -179,15 +180,16 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	zoneName := req.Zone
-	if zoneName == "" {
+	if err := req.Validate(); err != nil {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
-			Message: "zone is required",
+			Message: err.Error(),
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
 	}
+
+	zoneName := req.Name
 
 	ctx := r.Context()
 	deckState, err := h.stateStorage.GetDeckState(ctx, stateID)

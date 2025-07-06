@@ -36,9 +36,10 @@ func TestHandleAddZone(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeTable
+		req := ZoneRequest{
 			Name: "custom-pile",
-			Type: deckstate.ZoneTypeTable,
+			Type: &zoneType,
 			Size: &[]int{10}[0], // Helper to get pointer to int
 		}
 
@@ -84,9 +85,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("SuccessWithMeta", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeTable
+		req := ZoneRequest{
 			Name: "custom-pile-with-meta",
-			Type: deckstate.ZoneTypeTable,
+			Type: &zoneType,
 			Size: &[]int{10}[0], // Helper to get pointer to int
 		}
 
@@ -140,9 +142,10 @@ func TestHandleAddZone(t *testing.T) {
 
 	t.Run("DuplicateName", func(t *testing.T) {
 		// First, add a zone
-		req1 := AddZoneRequest{
+		zoneType1 := deckstate.ZoneTypeHand
+		req1 := ZoneRequest{
 			Name: "duplicate-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType1,
 		}
 		jsonBody1, _ := json.Marshal(req1)
 		httpReq1, _ := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/add-zone", bytes.NewBuffer(jsonBody1))
@@ -151,9 +154,10 @@ func TestHandleAddZone(t *testing.T) {
 		handler.handleAddZone(rr1, httpReq1, "test-state-id")
 
 		// Try to add the same zone again
-		req2 := AddZoneRequest{
+		zoneType2 := deckstate.ZoneTypeDiscard
+		req2 := ZoneRequest{
 			Name: "duplicate-zone",
-			Type: deckstate.ZoneTypeDiscard,
+			Type: &zoneType2,
 		}
 		jsonBody2, _ := json.Marshal(req2)
 		httpReq2, _ := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/add-zone", bytes.NewBuffer(jsonBody2))
@@ -177,8 +181,9 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("MissingName", func(t *testing.T) {
-		req := AddZoneRequest{
-			Type: deckstate.ZoneTypeHand,
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
+			Type: &zoneType,
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -195,9 +200,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("InvalidSizeHint", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
 			Name: "test-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType,
 			Size: &[]int{-5}[0], // Negative size hint
 		}
 
@@ -216,9 +222,10 @@ func TestHandleAddZone(t *testing.T) {
 
 	t.Run("SuccessWithDefaultFacing", func(t *testing.T) {
 		facing := deckstate.FaceDown
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeTable
+		req := ZoneRequest{
 			Name:          "face-down-pile",
-			Type:          deckstate.ZoneTypeTable,
+			Type:          &zoneType,
 			DefaultFacing: &facing,
 		}
 
@@ -256,9 +263,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("SuccessMinimalRequest", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
 			Name: "minimal-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType,
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -303,8 +311,8 @@ func TestHandleAddZone(t *testing.T) {
 		}
 	})
 
-	t.Run("MissingType", func(t *testing.T) {
-		req := AddZoneRequest{
+	t.Run("MissingTypeDefaultsToTemporary", func(t *testing.T) {
+		req := ZoneRequest{
 			Name: "test-zone",
 		}
 
@@ -315,18 +323,24 @@ func TestHandleAddZone(t *testing.T) {
 		rr := httptest.NewRecorder()
 		handler.handleAddZone(rr, httpReq, "test-state-id")
 
-		if status := rr.Code; status != http.StatusBadRequest {
+		if status := rr.Code; status != http.StatusCreated {
 			t.Errorf("handler returned wrong status code: got %v want %v",
-				status, http.StatusBadRequest)
+				status, http.StatusCreated)
 		}
 
-		var response ErrorResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Error != "bad_request" {
-			t.Errorf("Expected error 'bad_request', got '%s'", response.Error)
+		if !response.Success {
+			t.Error("Expected success to be true")
+		}
+
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else if response.Zone.Type != deckstate.ZoneTypeTemporary {
+			t.Errorf("Expected zone type to default to 'temporary', got '%s'", response.Zone.Type)
 		}
 	})
 
@@ -353,9 +367,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("NonExistentDeckState", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
 			Name: "test-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType,
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -419,8 +434,8 @@ func TestHandleRemoveZone(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		req := RemoveZoneRequest{
-			Zone: "empty-zone",
+		req := ZoneRequest{
+			Name: "empty-zone",
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -459,8 +474,8 @@ func TestHandleRemoveZone(t *testing.T) {
 			t.Fatalf("Failed to save test deck state: %v", err)
 		}
 
-		req := RemoveZoneRequest{
-			Zone: "empty-zone",
+		req := ZoneRequest{
+			Name: "empty-zone",
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -500,8 +515,8 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("ZoneNotEmpty", func(t *testing.T) {
-		req := RemoveZoneRequest{
-			Zone: "non-empty-zone",
+		req := ZoneRequest{
+			Name: "non-empty-zone",
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -530,8 +545,8 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("ZoneNotFound", func(t *testing.T) {
-		req := RemoveZoneRequest{
-			Zone: "nonexistent-zone",
+		req := ZoneRequest{
+			Name: "nonexistent-zone",
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -560,8 +575,8 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("MissingZoneParameter", func(t *testing.T) {
-		req := RemoveZoneRequest{
-			Zone: "", // Empty zone name
+		req := ZoneRequest{
+			Name: "", // Empty zone name
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -612,8 +627,8 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("NonExistentDeckState", func(t *testing.T) {
-		req := RemoveZoneRequest{
-			Zone: "empty-zone",
+		req := ZoneRequest{
+			Name: "empty-zone",
 		}
 
 		jsonBody, _ := json.Marshal(req)
