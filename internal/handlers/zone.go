@@ -26,6 +26,10 @@ type AddZoneMeta struct {
 	DurationMS float64 `json:"durationMS"`
 }
 
+type RemoveZoneRequest struct {
+	Zone string `json:"zone"`
+}
+
 type RemoveZoneResponse struct {
 	Success bool            `json:"success"`
 	Meta    *RemoveZoneMeta `json:"meta,omitempty"`
@@ -145,13 +149,6 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 	}
 
 	duration := time.Since(start)
-	h.logger.Info("Successfully added zone",
-		slog.String("operation", "add_zone"),
-		slog.String("deck_state_id", stateID),
-		slog.String("zone_name", req.Name),
-		slog.String("zone_type", string(req.Type)),
-		slog.Duration("duration", duration))
-
 	addZoneResponse := AddZoneResponse{
 		Zone: &zone,
 	}
@@ -174,11 +171,21 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 		slog.String("deck_state_id", stateID))
 
 	// Get zone name from query parameter
-	zoneName := r.URL.Query().Get("zone")
+	var req RemoveZoneRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response := ErrorResponse{
+			Error:   errStrBadRequest,
+			Message: "Invalid JSON in request body",
+		}
+		writeJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	zoneName := req.Zone
 	if zoneName == "" {
 		response := ErrorResponse{
 			Error:   errStrBadRequest,
-			Message: "zone parameter is required",
+			Message: "zone is required",
 		}
 		writeJSONResponse(w, http.StatusBadRequest, response)
 		return
@@ -208,7 +215,6 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Check if zone exists
 	zone, exists := deckState.Zones[zoneName]
 	if !exists {
 		response := ErrorResponse{
@@ -229,10 +235,8 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Remove zone from deck state
 	delete(deckState.Zones, zoneName)
 
-	// Save the updated deck state
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
 		h.logger.Error("Failed to save deck state after removing zone",
 			slog.String("operation", "save_deck_state_after_remove_zone"),
@@ -248,19 +252,10 @@ func (h *DeckStateHandler) handleRemoveZone(w http.ResponseWriter, r *http.Reque
 	}
 
 	duration := time.Since(start)
-
-	h.logger.Info("Successfully removed zone",
-		slog.String("operation", "remove_zone"),
-		slog.String("deck_state_id", stateID),
-		slog.String("zone_name", zoneName),
-		slog.Duration("duration", duration))
-
-	// Prepare response
 	removeZoneResponse := RemoveZoneResponse{
 		Success: true,
 	}
 
-	// Include meta if requested via query parameter
 	if r.URL.Query().Get("include") == "meta" {
 		removeZoneResponse.Meta = &RemoveZoneMeta{
 			DurationMS: float64(duration.Microseconds()) / 1000, // Convert to milliseconds

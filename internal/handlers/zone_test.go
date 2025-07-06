@@ -382,10 +382,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=empty-zone", nil)
+		req := RemoveZoneRequest{
+			Zone: "empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -416,10 +422,16 @@ func TestHandleRemoveZone(t *testing.T) {
 			t.Fatalf("Failed to save test deck state: %v", err)
 		}
 
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=empty-zone&include=meta", nil)
+		req := RemoveZoneRequest{
+			Zone: "empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?include=meta", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -446,10 +458,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("ZoneNotEmpty", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=non-empty-zone", nil)
+		req := RemoveZoneRequest{
+			Zone: "non-empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -470,10 +488,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("ZoneNotFound", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=nonexistent-zone", nil)
+		req := RemoveZoneRequest{
+			Zone: "nonexistent-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -494,10 +518,38 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("MissingZoneParameter", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", nil)
+		req := RemoveZoneRequest{
+			Zone: "", // Empty zone name
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		rr := httptest.NewRecorder()
+		handler.handleRemoveZone(rr, httpReq, "test-state-id")
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusBadRequest)
+		}
+
+		var response ErrorResponse
+		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+			t.Errorf("Could not parse response body: %v", err)
+		}
+
+		if response.Error != "bad_request" {
+			t.Errorf("Expected error 'bad_request', got '%s'", response.Error)
+		}
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		httpReq, _ := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer([]byte("invalid json")))
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -518,10 +570,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("NonExistentDeckState", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/nonexistent-id/actions/remove-zone?zone=empty-zone", nil)
+		req := RemoveZoneRequest{
+			Zone: "empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/nonexistent-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "nonexistent-id")
