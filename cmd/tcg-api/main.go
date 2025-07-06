@@ -48,7 +48,9 @@ func main() {
 	}
 
 	// Set up structured logging
-	logger := config.NewLogger(cfg.Logger)
+	loggerConfig := cfg.Logger
+	loggerConfig.Level = config.LogLevelDebug // TODO: Add log level configuration to config
+	logger := config.NewLogger(loggerConfig)
 	config.SetDefaultLogger(logger)
 
 	logger.Info("Starting TCG API",

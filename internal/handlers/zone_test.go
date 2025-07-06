@@ -36,9 +36,10 @@ func TestHandleAddZone(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeTable
+		req := ZoneRequest{
 			Name: "custom-pile",
-			Type: deckstate.ZoneTypeTable,
+			Type: &zoneType,
 			Size: &[]int{10}[0], // Helper to get pointer to int
 		}
 
@@ -57,17 +58,25 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.Name != "custom-pile" {
-			t.Errorf("Expected zone name 'custom-pile', got '%s'", response.Zone.Name)
+		if !response.Success {
+			t.Error("Expected success to be true")
 		}
 
-		if response.Zone.Type != deckstate.ZoneTypeTable {
-			t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.Name != "custom-pile" {
+				t.Errorf("Expected zone name 'custom-pile', got '%s'", response.Zone.Name)
+			}
+
+			if response.Zone.Type != deckstate.ZoneTypeTable {
+				t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+			}
 		}
 
 		if response.Meta != nil {
@@ -76,9 +85,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("SuccessWithMeta", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeTable
+		req := ZoneRequest{
 			Name: "custom-pile-with-meta",
-			Type: deckstate.ZoneTypeTable,
+			Type: &zoneType,
 			Size: &[]int{10}[0], // Helper to get pointer to int
 		}
 
@@ -97,31 +107,45 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.Name != "custom-pile-with-meta" {
-			t.Errorf("Expected zone name 'custom-pile-with-meta', got '%s'", response.Zone.Name)
+		if !response.Success {
+			t.Error("Expected success to be true")
 		}
 
-		if response.Zone.Type != deckstate.ZoneTypeTable {
-			t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.Name != "custom-pile-with-meta" {
+				t.Errorf("Expected zone name 'custom-pile-with-meta', got '%s'", response.Zone.Name)
+			}
+
+			if response.Zone.Type != deckstate.ZoneTypeTable {
+				t.Errorf("Expected zone type 'table', got '%s'", response.Zone.Type)
+			}
 		}
 
 		if response.Meta == nil {
 			t.Error("Expected meta object when include=meta")
-		} else if response.Meta.DurationMS <= 0 {
-			t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+		} else {
+			if response.Meta.DurationMS <= 0 {
+				t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+			}
+			if response.Meta.Operation != "add_zone" {
+				t.Errorf("Expected operation 'add_zone', got '%s'", response.Meta.Operation)
+			}
 		}
 	})
 
 	t.Run("DuplicateName", func(t *testing.T) {
 		// First, add a zone
-		req1 := AddZoneRequest{
+		zoneType1 := deckstate.ZoneTypeHand
+		req1 := ZoneRequest{
 			Name: "duplicate-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType1,
 		}
 		jsonBody1, _ := json.Marshal(req1)
 		httpReq1, _ := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/add-zone", bytes.NewBuffer(jsonBody1))
@@ -130,9 +154,10 @@ func TestHandleAddZone(t *testing.T) {
 		handler.handleAddZone(rr1, httpReq1, "test-state-id")
 
 		// Try to add the same zone again
-		req2 := AddZoneRequest{
+		zoneType2 := deckstate.ZoneTypeDiscard
+		req2 := ZoneRequest{
 			Name: "duplicate-zone",
-			Type: deckstate.ZoneTypeDiscard,
+			Type: &zoneType2,
 		}
 		jsonBody2, _ := json.Marshal(req2)
 		httpReq2, _ := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/add-zone", bytes.NewBuffer(jsonBody2))
@@ -156,8 +181,9 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("MissingName", func(t *testing.T) {
-		req := AddZoneRequest{
-			Type: deckstate.ZoneTypeHand,
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
+			Type: &zoneType,
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -174,9 +200,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("InvalidSizeHint", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
 			Name: "test-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType,
 			Size: &[]int{-5}[0], // Negative size hint
 		}
 
@@ -195,9 +222,10 @@ func TestHandleAddZone(t *testing.T) {
 
 	t.Run("SuccessWithDefaultFacing", func(t *testing.T) {
 		facing := deckstate.FaceDown
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeTable
+		req := ZoneRequest{
 			Name:          "face-down-pile",
-			Type:          deckstate.ZoneTypeTable,
+			Type:          &zoneType,
 			DefaultFacing: &facing,
 		}
 
@@ -216,20 +244,29 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.DefaultFacing != deckstate.FaceDown {
-			t.Errorf("Expected default facing 'face-down', got '%s'", response.Zone.DefaultFacing)
+		if !response.Success {
+			t.Error("Expected success to be true")
+		}
+
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.DefaultFacing != deckstate.FaceDown {
+				t.Errorf("Expected default facing 'face-down', got '%s'", response.Zone.DefaultFacing)
+			}
 		}
 	})
 
 	t.Run("SuccessMinimalRequest", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
 			Name: "minimal-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType,
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -247,27 +284,35 @@ func TestHandleAddZone(t *testing.T) {
 				status, http.StatusCreated)
 		}
 
-		var response AddZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Zone.Name != "minimal-zone" {
-			t.Errorf("Expected zone name 'minimal-zone', got '%s'", response.Zone.Name)
+		if !response.Success {
+			t.Error("Expected success to be true")
 		}
 
-		if response.Zone.Type != deckstate.ZoneTypeHand {
-			t.Errorf("Expected zone type 'hand', got '%s'", response.Zone.Type)
-		}
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else {
+			if response.Zone.Name != "minimal-zone" {
+				t.Errorf("Expected zone name 'minimal-zone', got '%s'", response.Zone.Name)
+			}
 
-		// Check that default values are set correctly
-		if response.Zone.DefaultFacing != deckstate.InHand {
-			t.Errorf("Expected default facing 'in-hand' for hand zone, got '%s'", response.Zone.DefaultFacing)
+			if response.Zone.Type != deckstate.ZoneTypeHand {
+				t.Errorf("Expected zone type 'hand', got '%s'", response.Zone.Type)
+			}
+
+			// Check that default values are set correctly
+			if response.Zone.DefaultFacing != deckstate.InHand {
+				t.Errorf("Expected default facing 'in-hand' for hand zone, got '%s'", response.Zone.DefaultFacing)
+			}
 		}
 	})
 
-	t.Run("MissingType", func(t *testing.T) {
-		req := AddZoneRequest{
+	t.Run("MissingTypeDefaultsToTemporary", func(t *testing.T) {
+		req := ZoneRequest{
 			Name: "test-zone",
 		}
 
@@ -278,18 +323,24 @@ func TestHandleAddZone(t *testing.T) {
 		rr := httptest.NewRecorder()
 		handler.handleAddZone(rr, httpReq, "test-state-id")
 
-		if status := rr.Code; status != http.StatusBadRequest {
+		if status := rr.Code; status != http.StatusCreated {
 			t.Errorf("handler returned wrong status code: got %v want %v",
-				status, http.StatusBadRequest)
+				status, http.StatusCreated)
 		}
 
-		var response ErrorResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
 
-		if response.Error != "bad_request" {
-			t.Errorf("Expected error 'bad_request', got '%s'", response.Error)
+		if !response.Success {
+			t.Error("Expected success to be true")
+		}
+
+		if response.Zone == nil {
+			t.Error("Expected zone object, got nil")
+		} else if response.Zone.Type != deckstate.ZoneTypeTemporary {
+			t.Errorf("Expected zone type to default to 'temporary', got '%s'", response.Zone.Type)
 		}
 	})
 
@@ -316,9 +367,10 @@ func TestHandleAddZone(t *testing.T) {
 	})
 
 	t.Run("NonExistentDeckState", func(t *testing.T) {
-		req := AddZoneRequest{
+		zoneType := deckstate.ZoneTypeHand
+		req := ZoneRequest{
 			Name: "test-zone",
-			Type: deckstate.ZoneTypeHand,
+			Type: &zoneType,
 		}
 
 		jsonBody, _ := json.Marshal(req)
@@ -382,10 +434,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=empty-zone", nil)
+		req := ZoneRequest{
+			Name: "empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -395,7 +453,7 @@ func TestHandleRemoveZone(t *testing.T) {
 				status, http.StatusOK)
 		}
 
-		var response RemoveZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
@@ -416,10 +474,16 @@ func TestHandleRemoveZone(t *testing.T) {
 			t.Fatalf("Failed to save test deck state: %v", err)
 		}
 
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=empty-zone&include=meta", nil)
+		req := ZoneRequest{
+			Name: "empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?include=meta", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -429,7 +493,7 @@ func TestHandleRemoveZone(t *testing.T) {
 				status, http.StatusOK)
 		}
 
-		var response RemoveZoneResponse
+		var response ZoneResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 			t.Errorf("Could not parse response body: %v", err)
 		}
@@ -440,16 +504,27 @@ func TestHandleRemoveZone(t *testing.T) {
 
 		if response.Meta == nil {
 			t.Error("Expected meta object when include=meta")
-		} else if response.Meta.DurationMS <= 0 {
-			t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+		} else {
+			if response.Meta.DurationMS <= 0 {
+				t.Errorf("Expected positive duration, got %f", response.Meta.DurationMS)
+			}
+			if response.Meta.Operation != "remove_zone" {
+				t.Errorf("Expected operation 'remove_zone', got '%s'", response.Meta.Operation)
+			}
 		}
 	})
 
 	t.Run("ZoneNotEmpty", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=non-empty-zone", nil)
+		req := ZoneRequest{
+			Name: "non-empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -470,10 +545,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("ZoneNotFound", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone?zone=nonexistent-zone", nil)
+		req := ZoneRequest{
+			Name: "nonexistent-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -494,10 +575,38 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("MissingZoneParameter", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", nil)
+		req := ZoneRequest{
+			Name: "", // Empty zone name
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
+
+		rr := httptest.NewRecorder()
+		handler.handleRemoveZone(rr, httpReq, "test-state-id")
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("handler returned wrong status code: got %v want %v",
+				status, http.StatusBadRequest)
+		}
+
+		var response ErrorResponse
+		if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+			t.Errorf("Could not parse response body: %v", err)
+		}
+
+		if response.Error != "bad_request" {
+			t.Errorf("Expected error 'bad_request', got '%s'", response.Error)
+		}
+	})
+
+	t.Run("InvalidJSON", func(t *testing.T) {
+		httpReq, _ := http.NewRequest("POST", "/v1/deckstates/test-state-id/actions/remove-zone", bytes.NewBuffer([]byte("invalid json")))
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "test-state-id")
@@ -518,10 +627,16 @@ func TestHandleRemoveZone(t *testing.T) {
 	})
 
 	t.Run("NonExistentDeckState", func(t *testing.T) {
-		httpReq, err := http.NewRequest("POST", "/v1/deckstates/nonexistent-id/actions/remove-zone?zone=empty-zone", nil)
+		req := ZoneRequest{
+			Name: "empty-zone",
+		}
+
+		jsonBody, _ := json.Marshal(req)
+		httpReq, err := http.NewRequest("POST", "/v1/deckstates/nonexistent-id/actions/remove-zone", bytes.NewBuffer(jsonBody))
 		if err != nil {
 			t.Fatal(err)
 		}
+		httpReq.Header.Set("Content-Type", "application/json")
 
 		rr := httptest.NewRecorder()
 		handler.handleRemoveZone(rr, httpReq, "nonexistent-id")

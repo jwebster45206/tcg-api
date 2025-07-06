@@ -1,4 +1,4 @@
-# tcg-api
+# TCG API
 A lightweight REST API for simulating card decks, built with Go. The API features a modular card interface design that separates game-specific mechanics from general deck mechanics, making it extensible for different types of card games.
 
 ## Technical Stack
@@ -23,7 +23,93 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 - Shuffle 
 - Draw (TODO)
 
-## Resource Design 
+## Getting Started
+
+### Running with Docker
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jwebster45206/tcg-api.git
+   cd tcg-api
+   ```
+
+2. Edit `docker-compose.yml` file, or use project defaults. 
+
+3. Run:
+   ```bash
+   docker compose up --build
+   ```
+
+4. The API will be available at `http://localhost:8080/v1`.
+
+> Sample config is provided in [`config.docker.json`](./config.docker.json).
+
+### Example Usage
+
+#### Health Endpoint
+```bash
+curl --location 'http://localhost:8080/health'
+```
+
+#### List Decks
+````bash
+curl --location 'http://localhost:8080/v1/decks'
+````
+
+#### Create a DeckState
+````bash
+curl --location 'http://localhost:8080/v1/deckstates' \
+--header 'Content-Type: application/json' \
+--data '{
+  "deck_id": "d0000000-0000-0000-0000-000000000001",
+  "player_count": 2
+}'
+````
+
+#### Shuffle Deck
+````bash
+curl --location 'http://localhost:8080/v1/deckstates/11111111-1111-1111-1111-111111111111/actions/sort-zone?include=meta%2Citems' \
+--header 'Content-Type: application/json' \
+--data '{
+    "zone": "draw",
+    "sort": "shuffle"
+}'
+````
+
+#### Order Deck by Definition
+````bash
+curl --location 'http://localhost:8080/v1/deckstates/11111111-1111-1111-1111-111111111111/actions/sort-zone?include=meta%2Citems' \
+--header 'Content-Type: application/json' \
+--data '{
+    "zone": "draw",
+    "sort": "definition"
+}'
+````
+
+#### Add a Zone
+```bash
+curl --location 'http://localhost:8080/v1/deckstates/11111111-1111-1111-1111-111111111111/actions/add-zone' \
+--header 'Content-Type: application/json' \
+--data '{
+  "zone": "foo",
+  "size": 10
+}'
+```
+
+#### Remove a Zone
+Note: Only empty zones may be removed. 
+````bash
+curl --location 'http://localhost:8080/v1/deckstates/11111111-1111-1111-1111-111111111111/actions/remove-zone' \
+--header 'Content-Type: application/json' \
+--data '{
+  "zone": "foo"
+}'
+````
+
+### Draw cards
+TODO
+
+##  Resource Design 
 
 Resources are separated into two main packages, `deckdef` and `deckstate`. 
 
@@ -98,3 +184,11 @@ Performance and modeling notes:
    - Admin roles for card management
    - Player roles for deck management and simulation
    - Card details dependent on card facing and user claims
+
+## License
+
+MIT
+
+## Contributing
+
+Pull requests ok. For major changes, please open an issue first.
