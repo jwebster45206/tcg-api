@@ -104,10 +104,10 @@ var _ ZoneItem = GroupInZone{}
 // Zone is a collection of cards and groups within a specific area of the game.
 // Zones can represent different game states like draw piles, discard piles, hands, etc.
 type Zone struct {
-	Name          string     `json:"name"`           // "draw", "hand:1", "table:2", etc.
-	Type          ZoneType   `json:"type"`           // Optional: "draw", "hand", "discard"
-	DefaultFacing Facing     `json:"default_facing"` // Default facing for cards in this zone
-	Items         []ZoneItem `json:"items"`          // Ordered list of cards and groups
+	Name          string     `json:"name"`            // "draw", "hand:1", "table:2", etc.
+	Type          ZoneType   `json:"type"`            // Optional: "draw", "hand", "discard"
+	DefaultFacing Facing     `json:"default_facing"`  // Default facing for cards in this zone
+	Items         []ZoneItem `json:"items,omitempty"` // Ordered list of cards and groups
 	// Owner TODO
 }
 
