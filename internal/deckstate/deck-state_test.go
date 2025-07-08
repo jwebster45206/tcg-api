@@ -93,6 +93,18 @@ func TestNewDeckState(t *testing.T) {
 		t.Errorf("Expected default facing %s, got %s", FaceDown, drawZone.DefaultFacing)
 	}
 
+	// Verify player 1 hand was created
+	_, exists = deckState.Zones["player:1"]
+	if !exists {
+		t.Fatal("Expected player:1 hand zone to exist")
+	}
+
+	// Verify player 2 hand was created
+	_, exists = deckState.Zones["player:2"]
+	if !exists {
+		t.Fatal("Expected player:2 hand zone to exist")
+	}
+
 	// Verify all cards were expanded properly
 	if len(drawZone.Items) != 5 {
 		t.Errorf("Expected 5 cards in draw zone, got %d", len(drawZone.Items))

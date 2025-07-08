@@ -1,6 +1,8 @@
 package deckstate
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jwebster45206/tcg-api/internal/deckdef"
 )
@@ -8,6 +10,10 @@ import (
 type Facing string
 type Orientation string
 type ZoneType string
+
+const (
+	DefaultHandSize = 7
+)
 
 // DeckState is a runtime state of a deck during gameplay.
 // It includes the deck template, player count, and zones where cards are located.
@@ -44,6 +50,13 @@ func NewDeckState(deck deckdef.Deck, playerCount int) *DeckState {
 
 		discardZone := NewZone(ZoneNameDiscard, ZoneTypeDiscard, ZoneSizeUnlimited)
 		zones[ZoneNameDiscard] = &discardZone
+
+		if playerCount > 0 {
+			for i := 1; i <= playerCount; i++ {
+				handZone := NewZone(fmt.Sprintf("player:%d", i), ZoneTypeHand, DefaultHandSize)
+				zones[handZone.Name] = &handZone
+			}
+		}
 	}
 
 	return &DeckState{
