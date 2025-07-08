@@ -226,7 +226,7 @@ func TestDeckStateHandler_GetDeckState(t *testing.T) {
 			Name: "Test Deck",
 			Type: "standard",
 		},
-		Zones: map[string]deckstate.Zone{
+		Zones: map[string]*deckstate.Zone{
 			"draw": {
 				Name:          "draw",
 				Type:          deckstate.ZoneTypeDraw,
@@ -340,7 +340,7 @@ func TestDeckStateHandler_DeleteDeckState(t *testing.T) {
 			Name: "Test Deck",
 			Type: "standard",
 		},
-		Zones: map[string]deckstate.Zone{
+		Zones: map[string]*deckstate.Zone{
 			"draw": {
 				Name:          "draw",
 				Type:          deckstate.ZoneTypeDraw,
@@ -545,11 +545,12 @@ func TestDeckStateHandler_SortZoneAction(t *testing.T) {
 
 	// Create a test deck state with a draw zone
 	deckStateID := uuid.New().String()
+	z := deckstate.NewZone("draw", deckstate.ZoneTypeDraw, 52)
 	sampleDeckState := &deckstate.DeckState{
 		ID:          deckStateID,
 		PlayerCount: 2,
-		Zones: map[string]deckstate.Zone{
-			"draw": deckstate.NewZone("draw", deckstate.ZoneTypeDraw, 52),
+		Zones: map[string]*deckstate.Zone{
+			"draw": &z,
 		},
 	}
 	_ = mockStateStorage.SaveDeckState(context.Background(), deckStateID, sampleDeckState)

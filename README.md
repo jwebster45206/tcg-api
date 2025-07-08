@@ -3,7 +3,7 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 
 ## Technical Stack
 - **Language**: Go
-- **Storage**: MySQL (Redis TODO)
+- **Storage**: MySQL, Redis
 
 ## Features
 
@@ -19,9 +19,9 @@ A lightweight REST API for simulating card decks, built with Go. The API feature
 - Deck state management 
 
 ### Deck State Management
-- Create a mutable instance of an immutable deck 
+- Store a shapshot of a template deck at init
 - Shuffle 
-- Draw (TODO)
+- Draw
 
 ## Getting Started
 
@@ -107,7 +107,15 @@ curl --location 'http://localhost:8080/v1/deckstates/11111111-1111-1111-1111-111
 ````
 
 ### Draw cards
-TODO
+````bash
+curl --location 'http://localhost:8080/v1/deckstates/11111111-1111-1111-1111-111111111111/actions/draw-cards' \
+--header 'Content-Type: application/json' \
+--data '{
+    "from_zone": "draw",
+    "to_zone": "player:1",
+    "count": 7
+}'
+````
 
 ##  Resource Design 
 
@@ -160,18 +168,10 @@ DeckState is a runtime state of a deck during gameplay. It includes the deck tem
 Zone is a collection of cards and groups within a specific area of the game. Zones can represent different game states like draw piles, discard piles, hands, etc.
 
 #### Endpoints
-- `/v1/deckstates` - Deck state ✅
+- `/v1/deckstates` - Deck state
 - `/v1/deckstates/{id}/actions/{actionName}` - Actions on a deck state (in progress)
-  - Supported actions: `sort-zone` ✅
-  - TODO: `add-zone`, `remove-zone`, `move-cards` 
-
-Performance and modeling notes:
-- Use `slice = slice[:len(slice)-1]` for efficient end-of-slice removal. 
-- Indexes are ordered left to right and/or bottom to top
-- bottom of deck = start of slice
-- left of hand = start of slice
-- top of deck = end of slice
-- right of hand = end of slice
+  - Supported actions: `sort-zone`, `add-zone`, `remove-zone`, `draw-cards`
+  - TODO: `move-cards`
 
 ## Security (TODO)
 

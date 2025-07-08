@@ -155,47 +155,49 @@ type ZoneItemJSON struct {
 
 // MarshalJSON custom marshaler for Zone
 func (z Zone) MarshalJSON() ([]byte, error) {
-	// Convert ZoneItems to ZoneItemJSON
-	itemsJSON := make([]ZoneItemJSON, len(z.Items))
-	for i, item := range z.Items {
-		var itemType string
-		var itemData json.RawMessage
-		var err error
-
-		switch v := item.(type) {
-		case CardInZone:
-			itemType = "card"
-			itemData, err = json.Marshal(v)
-		case GroupInZone:
-			itemType = "group"
-			itemData, err = json.Marshal(v)
-		default:
-			return nil, fmt.Errorf("unknown ZoneItem type: %T", v)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		itemsJSON[i] = ZoneItemJSON{
-			Type: itemType,
-			Data: itemData,
-		}
-	}
-
 	// Create a temporary struct for marshaling
 	temp := struct {
 		Name          string         `json:"name"`
 		Type          ZoneType       `json:"type"`
 		DefaultFacing Facing         `json:"default_facing"`
-		Items         []ZoneItemJSON `json:"items"`
+		Items         []ZoneItemJSON `json:"items,omitempty"`
 	}{
 		Name:          z.Name,
 		Type:          z.Type,
 		DefaultFacing: z.DefaultFacing,
-		Items:         itemsJSON,
 	}
 
+	// Only process items if the slice is not nil
+	if z.Items != nil {
+		// Convert ZoneItems to ZoneItemJSON
+		itemsJSON := make([]ZoneItemJSON, len(z.Items))
+		for i, item := range z.Items {
+			var itemType string
+			var itemData json.RawMessage
+			var err error
+
+			switch v := item.(type) {
+			case CardInZone:
+				itemType = "card"
+				itemData, err = json.Marshal(v)
+			case GroupInZone:
+				itemType = "group"
+				itemData, err = json.Marshal(v)
+			default:
+				return nil, fmt.Errorf("unknown ZoneItem type: %T", v)
+			}
+
+			if err != nil {
+				return nil, err
+			}
+
+			itemsJSON[i] = ZoneItemJSON{
+				Type: itemType,
+				Data: itemData,
+			}
+		}
+		temp.Items = itemsJSON
+	}
 	return json.Marshal(temp)
 }
 

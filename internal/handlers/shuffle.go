@@ -132,10 +132,10 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 	switch req.Sort {
 	case SortTypeShuffle:
 		// Fisher-Yates randomization of the zone
-		duration, err = shuffleZone(&zone)
+		duration, err = shuffleZone(zone)
 	case SortTypeDefinition:
 		// Reset to deck definition
-		duration, err = sortZoneByDefinition(&zone, &deckState.Deck)
+		duration, err = sortZoneByDefinition(zone, &deckState.Deck)
 	}
 
 	if err != nil {
@@ -153,7 +153,7 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	deckState.Zones[req.Zone] = zone
+	// No need to reassign zone since the pointer is stored in the map
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
 		h.logger.Error("Failed to save deck state after sort",
 			slog.String("operation", "save_deck_state_after_sort"),
@@ -191,7 +191,7 @@ func (h *DeckStateHandler) handleSortZone(w http.ResponseWriter, r *http.Request
 
 	sortResponse := ZoneResponse{
 		Success: true,
-		Zone:    &responseZone,
+		Zone:    responseZone,
 	}
 
 	if includeMeta {
