@@ -26,7 +26,7 @@ func TestHandleAddZone(t *testing.T) {
 	testDeckState := &deckstate.DeckState{
 		ID:          "test-state-id",
 		PlayerCount: 2,
-		Zones:       make(map[string]deckstate.Zone),
+		Zones:       make(map[string]*deckstate.Zone),
 	}
 
 	ctx := context.Background()
@@ -407,7 +407,7 @@ func TestHandleRemoveZone(t *testing.T) {
 	testDeckState := &deckstate.DeckState{
 		ID:          "test-state-id",
 		PlayerCount: 2,
-		Zones:       make(map[string]deckstate.Zone),
+		Zones:       make(map[string]*deckstate.Zone),
 	}
 
 	// Add an empty zone and a non-empty zone
@@ -424,8 +424,8 @@ func TestHandleRemoveZone(t *testing.T) {
 	}
 	nonEmptyZone.Items = []deckstate.ZoneItem{cardInZone} // Mock item
 
-	testDeckState.Zones["empty-zone"] = emptyZone
-	testDeckState.Zones["non-empty-zone"] = nonEmptyZone
+	testDeckState.Zones["empty-zone"] = &emptyZone
+	testDeckState.Zones["non-empty-zone"] = &nonEmptyZone
 
 	ctx := context.Background()
 	err := mockStateStorage.SaveDeckState(ctx, testDeckState.ID, testDeckState)
@@ -469,7 +469,8 @@ func TestHandleRemoveZone(t *testing.T) {
 
 	t.Run("SuccessWithMeta", func(t *testing.T) {
 		// First, re-add the zone since it was removed in the previous test
-		testDeckState.Zones["empty-zone"] = deckstate.NewZone("empty-zone", deckstate.ZoneTypeTable, 0)
+		zone := deckstate.NewZone("empty-zone", deckstate.ZoneTypeTable, 0)
+		testDeckState.Zones["empty-zone"] = &zone
 		if err := mockStateStorage.SaveDeckState(ctx, testDeckState.ID, testDeckState); err != nil {
 			t.Fatalf("Failed to save test deck state: %v", err)
 		}

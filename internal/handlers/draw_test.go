@@ -45,10 +45,10 @@ func TestHandleDrawCards(t *testing.T) {
 
 		return &deckstate.DeckState{
 			ID:          stateID,
-			PlayerCount: 2,
-			Zones: map[string]deckstate.Zone{
-				"deck": sourceZone,
-				"hand": destZone,
+			PlayerCount: 1,
+			Zones: map[string]*deckstate.Zone{
+				"deck": &sourceZone,
+				"hand": &destZone,
 			},
 		}
 	}
@@ -367,9 +367,9 @@ func TestHandleDrawCards(t *testing.T) {
 		singleCardState := &deckstate.DeckState{
 			ID:          "single-card-state",
 			PlayerCount: 1,
-			Zones: map[string]deckstate.Zone{
-				"single-deck": singleCardZone,
-				"empty-hand":  emptyHandZone,
+			Zones: map[string]*deckstate.Zone{
+				"single-deck": &singleCardZone,
+				"empty-hand":  &emptyHandZone,
 			},
 		}
 
@@ -432,9 +432,9 @@ func TestHandleDrawCards(t *testing.T) {
 		emptyDeckState := &deckstate.DeckState{
 			ID:          "empty-deck-state",
 			PlayerCount: 1,
-			Zones: map[string]deckstate.Zone{
-				"empty-deck": emptyDeckZone,
-				"hand-zone":  handZone,
+			Zones: map[string]*deckstate.Zone{
+				"empty-deck": &emptyDeckZone,
+				"hand-zone":  &handZone,
 			},
 		}
 

@@ -136,8 +136,7 @@ func (h *DeckStateHandler) handleDrawCards(w http.ResponseWriter, r *http.Reques
 	toZone.Items = append(toZone.Items, cardsToDraw...)
 
 	// Save the updated deck state
-	deckState.Zones[req.FromZone] = fromZone
-	deckState.Zones[req.ToZone] = toZone
+	// No need to reassign zones singe pointers are stored in the map
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
 		h.logger.Error("Failed to save deck state after draw",
 			slog.String("operation", "save_deck_state_after_draw"),
@@ -174,9 +173,9 @@ func (h *DeckStateHandler) handleDrawCards(w http.ResponseWriter, r *http.Reques
 	responseZones := make(map[string]*deckstate.Zone)
 
 	// Create copies of the zones for the response
-	// Note: Shallow copys of zones.
-	fromZoneResponse := fromZone
-	toZoneResponse := toZone
+	// Note: Since we're using pointers, we need to copy the struct values
+	fromZoneResponse := *fromZone
+	toZoneResponse := *toZone
 
 	// If items are not explicitly included, remove them
 	if !includeItems {

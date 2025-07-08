@@ -130,7 +130,7 @@ func (h *DeckStateHandler) handleAddZone(w http.ResponseWriter, r *http.Request,
 		zone.DefaultFacing = *z.DefaultFacing
 	}
 
-	deckState.Zones[z.Name] = zone
+	deckState.Zones[z.Name] = &zone
 	if err := h.stateStorage.SaveDeckState(ctx, stateID, deckState); err != nil {
 		h.logger.Error("Failed to save deck state after adding zone",
 			slog.String("operation", "save_deck_state_after_add_zone"),
