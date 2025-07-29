@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 // MockDeckStateStorage is a mock implementation of DeckStateStorage for testing

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 type DrawRequest struct {

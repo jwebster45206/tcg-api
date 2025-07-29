@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 func TestDecksHandler_ListDecks(t *testing.T) {

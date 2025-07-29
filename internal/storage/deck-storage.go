@@ -8,8 +8,8 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 // Deck operations

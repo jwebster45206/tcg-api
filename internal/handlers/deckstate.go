@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
 	"github.com/jwebster45206/tcg-api/internal/state"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 // ContextKey is a custom type for context keys to avoid collisions

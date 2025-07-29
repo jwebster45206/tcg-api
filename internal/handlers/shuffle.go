@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
 	"github.com/jwebster45206/tcg-api/internal/shuffle"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 const (

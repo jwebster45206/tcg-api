@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 func TestPlayingCardsHandler_ListCards(t *testing.T) {

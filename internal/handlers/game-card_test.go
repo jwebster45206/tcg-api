@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 // testLogger creates a test logger that outputs to stdout but suppresses output during tests

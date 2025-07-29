@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
 	"github.com/jwebster45206/tcg-api/internal/state"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 func TestHandleAddZone(t *testing.T) {
