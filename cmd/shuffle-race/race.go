@@ -42,15 +42,12 @@ func race(decks int) error {
 		if err != nil {
 			return fmt.Errorf("failed to shuffle deck: %w", err)
 		}
-		//fmt.Println("Shuffled the deck")
 
 		// Draw 5 cards
 		err = drawCards(client, deckStateID, "draw", "player:1", 5)
 		if err != nil {
 			return fmt.Errorf("failed to draw cards: %w", err)
 		}
-
-		//fmt.Println("Drew 5 cards to player:1")
 
 		deckState, err := getDeckState(client, deckStateID)
 		if err != nil {
