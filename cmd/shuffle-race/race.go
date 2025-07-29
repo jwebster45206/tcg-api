@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 	"github.com/jwebster45206/tcg-api/pkg/deckstate"
@@ -30,6 +33,7 @@ func race(decks int) error {
 	fmt.Printf("Created deck state: %s\n", deckStateID)
 
 	// Try up to maxTries times to find a Royal Flush
+	startTime := time.Now()
 	for iteration := 1; iteration <= maxTries; iteration++ {
 		fmt.Printf("\n--- Iteration %d ---\n", iteration)
 
@@ -38,7 +42,7 @@ func race(decks int) error {
 		if err != nil {
 			return fmt.Errorf("failed to shuffle deck: %w", err)
 		}
-		fmt.Println("Shuffled the deck")
+		//fmt.Println("Shuffled the deck")
 
 		// Draw 5 cards
 		err = drawCards(client, deckStateID, "draw", "player:1", 5)
@@ -46,7 +50,7 @@ func race(decks int) error {
 			return fmt.Errorf("failed to draw cards: %w", err)
 		}
 
-		fmt.Println("Drew 5 cards to player:1")
+		//fmt.Println("Drew 5 cards to player:1")
 
 		deckState, err := getDeckState(client, deckStateID)
 		if err != nil {
@@ -57,11 +61,23 @@ func race(decks int) error {
 		// Check if Royal Flush
 		isRoyalFlush := checkRoyalFlush(deckState)
 		if isRoyalFlush {
-			fmt.Printf("ROYAL FLUSH FOUND after %d iterations!\n", iteration)
+			fmt.Println(formatWinMessage("Royal Flush", iteration, startTime))
 			return nil
 		}
 
-		fmt.Println("No Royal Flush found")
+		// Check if Straight Flush
+		isStraightFlush := checkStraightFlush(deckState)
+		if isStraightFlush {
+			fmt.Println(formatWinMessage("Straight Flush", iteration, startTime))
+			return nil
+		}
+
+		// Check if Five of a Suit
+		hasFiveOfASuit := checkFiveOfASuit(deckState)
+		if hasFiveOfASuit {
+			fmt.Println(formatWinMessage("Five of a Suit", iteration, startTime))
+			return nil
+		}
 
 		// Return 5 cards to draw pile for next iteration
 		err = drawCards(client, deckStateID, "player:1", "draw", 5)
@@ -71,14 +87,13 @@ func race(decks int) error {
 		fmt.Println("Returned 5 cards to draw pile")
 	}
 
-	fmt.Println("No Royal Flush found after 100 iterations")
+	fmt.Println("No winning hand found after", maxTries, "iterations")
 
 	return nil
 }
 
 // getDeckState retrieves a deck state by ID using the API
 func getDeckState(client *http.Client, deckStateID string) (*deckstate.DeckState, error) {
-	// Create HTTP request
 	apiURL := APIBaseURL + "/v1/deckstates/" + deckStateID
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
@@ -108,7 +123,7 @@ func getDeckState(client *http.Client, deckStateID string) (*deckstate.DeckState
 	}
 }
 
-// drawCards draws cards from one zone to another using the API
+// drawCards moves cards between zones using the API
 func drawCards(client *http.Client, deckStateID, fromZone, toZone string, count int) error {
 	request := DrawRequest{
 		FromZone: fromZone,
@@ -161,9 +176,6 @@ func shuffleDeck(client *http.Client, deckStateID string) error {
 	}
 
 	fmt.Println("Shuffling deck...")
-	fmt.Printf("  Deck State ID: %s\n", deckStateID)
-	fmt.Printf("  Zone: %s\n", request.Zone)
-	fmt.Printf("  Sort Type: %s\n", request.Sort)
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
@@ -254,16 +266,17 @@ func createDeckState(client *http.Client) (string, error) {
 // printPlayerHand prints the cards in the player's hand
 func printPlayerHand(deckState *deckstate.DeckState) {
 	playingCards := extractPlayingCards(deckState, "player:1")
-	fmt.Printf("Playing Cards in player's hand (%d):\n", len(playingCards))
+	names := make([]string, len(playingCards))
 	for i, card := range playingCards {
-		fmt.Printf("  %d. %s\n", i+1, card.GetName())
+		names[i] = card.GetName()
 	}
+	fmt.Printf("Cards: %s\n", strings.Join(names, ", "))
 }
 
 var royalFlushRankings = map[int]bool{1: true, 10: true, 11: true, 12: true, 13: true}
 
-// checkRoyalFlush checks if the "player:1" zone contains a Royal Flush
-// Where a Royal Flush is: 10, Jack, Queen, King, Ace of the same suit
+// checkRoyalFlush checks if the "player:1" zone contains a royal flush
+// where a royal flush is: 10, jack, queen, king, ace of the same suit
 func checkRoyalFlush(deckState *deckstate.DeckState) bool {
 	playingCards := extractPlayingCards(deckState, "player:1")
 	if len(playingCards) < 5 {
@@ -294,6 +307,58 @@ func checkRoyalFlush(deckState *deckstate.DeckState) bool {
 		}
 	}
 	return hasRoyalFlush
+}
+
+func checkStraightFlush(deckState *deckstate.DeckState) bool {
+	playingCards := extractPlayingCards(deckState, "player:1")
+	if len(playingCards) < 5 {
+		return false
+	}
+
+	suitCards := make(map[string][]int) // suit -> rankings
+	for _, card := range playingCards {
+		suitCards[card.Suit] = append(suitCards[card.Suit], card.Ranking)
+	}
+	if len(suitCards) > 1 {
+		return false
+	}
+
+	cards := suitCards[playingCards[0].Suit]
+
+	// Sort rankings and check for straight
+	sort.Ints(cards)
+	for i := 0; i <= len(cards)-5; i++ {
+		if cards[i+4]-cards[i] == 4 &&
+			cards[i+1]-cards[i] == 1 &&
+			cards[i+2]-cards[i] == 2 &&
+			cards[i+3]-cards[i] == 3 {
+			return true
+		}
+	}
+	return false
+}
+
+// checkFiveOfASuit returns true if there are 5 cards of the same suit in the player's hand
+func checkFiveOfASuit(deckState *deckstate.DeckState) bool {
+	playingCards := extractPlayingCards(deckState, "player:1")
+	if len(playingCards) < 5 {
+		return false
+	}
+	suitCount := make(map[string]int)
+	for _, card := range playingCards {
+		suitCount[card.Suit]++
+		if suitCount[card.Suit] >= 5 {
+			return true
+		}
+	}
+	return false
+}
+
+// formatWinMessage creates a formatted success message with timing and iteration info
+func formatWinMessage(handType string, iteration int, startTime time.Time) string {
+	duration := time.Since(startTime)
+	return fmt.Sprintf("Winning hand found: Tries: %d, Time: %.1fs, Hand: %s",
+		iteration, duration.Seconds(), handType)
 }
 
 // extractPlayingCards extracts playingCard data from a zone
