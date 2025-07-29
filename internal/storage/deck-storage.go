@@ -63,7 +63,11 @@ func (m *MySQLStorage) ListDecks(ctx context.Context, filters []query.Filter, so
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close rows", "error", closeErr)
+		}
+	}()
 
 	var decks []*deckdef.Deck
 	for rows.Next() {
@@ -247,7 +251,11 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close rows", "error", closeErr)
+		}
+	}()
 
 	var cards []*deckdef.CardWithQuantity
 	for rows.Next() {
@@ -385,7 +393,11 @@ func (m *MySQLStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards
 	if err != nil {
 		return fmt.Errorf("failed to query card IDs: %w", err)
 	}
-	defer cardRows.Close()
+	defer func() {
+		if closeErr := cardRows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close cardRows", "error", closeErr)
+		}
+	}()
 
 	// Build the insert data and validate that all cards exist
 	var insertValues []interface{}

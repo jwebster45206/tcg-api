@@ -64,7 +64,11 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close rows", "error", closeErr)
+		}
+	}()
 
 	var imageCards []*deckdef.ImageCard
 	for rows.Next() {

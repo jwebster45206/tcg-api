@@ -92,7 +92,7 @@ func checkAPIHealth() {
 		fmt.Printf("❌ Failed to connect to API: %v\n", err)
 		os.Exit(1)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {

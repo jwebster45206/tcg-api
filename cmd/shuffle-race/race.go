@@ -101,7 +101,7 @@ func getDeckState(client *http.Client, deckStateID string) (*deckstate.DeckState
 	if err != nil {
 		return nil, fmt.Errorf("failed to make HTTP request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusOK {
 		// Success case - parse as DeckState
@@ -144,7 +144,7 @@ func drawCards(client *http.Client, deckStateID, fromZone, toZone string, count 
 	if err != nil {
 		return fmt.Errorf("failed to make HTTP request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var response DrawResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -191,7 +191,7 @@ func shuffleDeck(client *http.Client, deckStateID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to make HTTP request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var response SortZoneResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -239,7 +239,7 @@ func createDeckState(client *http.Client) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to make HTTP request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var response CreateDeckStateResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {

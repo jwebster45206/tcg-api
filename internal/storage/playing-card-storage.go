@@ -59,7 +59,11 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close rows", "error", closeErr)
+		}
+	}()
 
 	var playingCards []*deckdef.PlayingCard
 	for rows.Next() {
