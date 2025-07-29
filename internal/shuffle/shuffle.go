@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 // FisherYatesShuffle performs an in-place Fisher-Yates shuffle on a slice of ZoneItems.

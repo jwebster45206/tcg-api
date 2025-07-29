@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 // mustParseTime is a helper function for tests that parses a date string and panics on error

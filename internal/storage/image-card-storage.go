@@ -8,8 +8,8 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 // ImageCard operations
@@ -64,7 +64,11 @@ func (m *MySQLStorage) ListImageCards(ctx context.Context, filters []query.Filte
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close rows", "error", closeErr)
+		}
+	}()
 
 	var imageCards []*deckdef.ImageCard
 	for rows.Next() {

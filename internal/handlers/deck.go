@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 // DecksHandler handles HTTP requests for deck operations

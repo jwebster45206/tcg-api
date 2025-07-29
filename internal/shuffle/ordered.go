@@ -3,8 +3,8 @@ package shuffle
 import (
 	"sort"
 
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 // DefinitionSort sorts zoneItems in the order of cards native to the deck definition.

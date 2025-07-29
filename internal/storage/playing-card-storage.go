@@ -7,8 +7,8 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jwebster45206/tcg-api/internal/deckdef"
 	"github.com/jwebster45206/tcg-api/internal/query"
+	"github.com/jwebster45206/tcg-api/pkg/deckdef"
 )
 
 func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.PlayingCard, error) {
@@ -59,7 +59,11 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			m.logger.Warn("Failed to close rows", "error", closeErr)
+		}
+	}()
 
 	var playingCards []*deckdef.PlayingCard
 	for rows.Next() {

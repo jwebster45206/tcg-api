@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jwebster45206/tcg-api/internal/deckstate"
+	"github.com/jwebster45206/tcg-api/pkg/deckstate"
 )
 
 // ZoneRequest represents a request for zone operations (add/remove)

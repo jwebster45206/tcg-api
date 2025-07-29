@@ -94,7 +94,10 @@ func retryConnect(dsn string, logger *slog.Logger, dbType string) (*sql.DB, erro
 				slog.Int("attempt", i+1),
 				slog.Int("max_retries", maxRetries),
 				slog.Any("error", err))
-			db.Close()
+			if closeErr := db.Close(); closeErr != nil {
+				logger.Warn(fmt.Sprintf("Failed to close %s database connection", dbType),
+					slog.Any("close_error", closeErr))
+			}
 		}
 
 		if i < maxRetries-1 {
