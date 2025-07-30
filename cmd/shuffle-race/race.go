@@ -15,6 +15,61 @@ import (
 
 const maxTries = 1000
 
+func deckInstance(client *http.Client) (string, int, error) {
+	// Create deckstate for standard playing card deck
+	deckStateID, err := createDeckState(client)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to create deck state: %w", err)
+	}
+	fmt.Printf("Created deck state: %s\n", deckStateID)
+
+	// Try up to maxTries times to find a Royal Flush
+	for iteration := 1; iteration <= maxTries; iteration++ {
+		// Shuffle the deck
+		err = shuffleDeck(client, deckStateID)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to shuffle deck: %w", err)
+		}
+
+		// Draw 5 cards
+		err = drawCards(client, deckStateID, "draw", "player:1", 5)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to draw cards: %w", err)
+		}
+
+		deckState, err := getDeckState(client, deckStateID)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to get deck state: %w", err)
+		}
+		// printPlayerHand(deckState)
+
+		// Check if Royal Flush
+		isRoyalFlush := checkRoyalFlush(deckState)
+		if isRoyalFlush {
+			return "Royal Flush", iteration, nil
+		}
+
+		// Check if Straight Flush
+		isStraightFlush := checkStraightFlush(deckState)
+		if isStraightFlush {
+			return "Straight Flush", iteration, nil
+		}
+
+		// Check if Five of a Suit
+		hasFiveOfASuit := checkFiveOfASuit(deckState)
+		if hasFiveOfASuit {
+			return "Five of a Suit", iteration, nil
+		}
+
+		// Return 5 cards to draw pile for next iteration
+		err = drawCards(client, deckStateID, "player:1", "draw", 5)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to return cards to draw pile: %w", err)
+		}
+	}
+	return fmt.Sprintf("No winning hand found after %d tries", maxTries), maxTries, nil
+}
+
 func race(decks int) error {
 	if decks != 1 {
 		return fmt.Errorf("only 1 deck supported for now")
@@ -23,68 +78,15 @@ func race(decks int) error {
 	client := newHTTPClient()
 
 	fmt.Println("Starting shuffle race with", decks, "deck(s)...")
-
-	// Create deckstate for standard playing card deck
-	deckStateID, err := createDeckState(client)
-	if err != nil {
-		return fmt.Errorf("failed to create deck state: %w", err)
-	}
-
-	fmt.Printf("Created deck state: %s\n", deckStateID)
-
-	// Try up to maxTries times to find a Royal Flush
 	startTime := time.Now()
-	for iteration := 1; iteration <= maxTries; iteration++ {
-		fmt.Printf("\n--- Iteration %d ---\n", iteration)
 
-		// Shuffle the deck
-		err = shuffleDeck(client, deckStateID)
-		if err != nil {
-			return fmt.Errorf("failed to shuffle deck: %w", err)
-		}
-
-		// Draw 5 cards
-		err = drawCards(client, deckStateID, "draw", "player:1", 5)
-		if err != nil {
-			return fmt.Errorf("failed to draw cards: %w", err)
-		}
-
-		deckState, err := getDeckState(client, deckStateID)
-		if err != nil {
-			return fmt.Errorf("failed to get deck state: %w", err)
-		}
-		printPlayerHand(deckState)
-
-		// Check if Royal Flush
-		isRoyalFlush := checkRoyalFlush(deckState)
-		if isRoyalFlush {
-			fmt.Println(formatWinMessage("Royal Flush", iteration, startTime))
-			return nil
-		}
-
-		// Check if Straight Flush
-		isStraightFlush := checkStraightFlush(deckState)
-		if isStraightFlush {
-			fmt.Println(formatWinMessage("Straight Flush", iteration, startTime))
-			return nil
-		}
-
-		// Check if Five of a Suit
-		hasFiveOfASuit := checkFiveOfASuit(deckState)
-		if hasFiveOfASuit {
-			fmt.Println(formatWinMessage("Five of a Suit", iteration, startTime))
-			return nil
-		}
-
-		// Return 5 cards to draw pile for next iteration
-		err = drawCards(client, deckStateID, "player:1", "draw", 5)
-		if err != nil {
-			return fmt.Errorf("failed to return cards to draw pile: %w", err)
-		}
-		fmt.Println("Returned 5 cards to draw pile")
+	msg, tries, err := deckInstance(client)
+	if err != nil {
+		return fmt.Errorf("shuffle and check failed: %w", err)
 	}
-
-	fmt.Println("No winning hand found after", maxTries, "iterations")
+	fmt.Println(msg)
+	fmt.Printf("Total tries: %d\n", tries)
+	fmt.Printf("Elapsed time: %.3fs\n", time.Since(startTime).Seconds())
 
 	return nil
 }
@@ -171,8 +173,6 @@ func shuffleDeck(client *http.Client, deckStateID string) error {
 		Zone: "draw",
 		Sort: "shuffle",
 	}
-
-	fmt.Println("Shuffling deck...")
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
