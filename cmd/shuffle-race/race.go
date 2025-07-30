@@ -17,8 +17,7 @@ import (
 
 const maxTries = 1000
 
-// DeckResult represents the result from a deck instance
-type DeckResult struct {
+type RunDeckResult struct {
 	DeckID   int
 	Message  string
 	Tries    int
@@ -26,22 +25,23 @@ type DeckResult struct {
 	Error    error
 }
 
-func deckInstance(ctx context.Context, client *http.Client, deckID int) (*DeckResult, error) {
+func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResult, error) {
 	startTime := time.Now()
 
-	// Create deckstate for standard playing card deck
+	// Create an instance of a standard playing card deck,
+	// with a single draw pile and player hand
 	deckStateID, err := createDeckState(client)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create deck state: %w", err)
 	}
 	fmt.Printf("Deck %d: Created deck state: %s\n", deckID, deckStateID)
 
-	// Try up to maxTries times to find a winning hand
+	// shuffle, check for winning hand, repeat
 	for iteration := 1; iteration <= maxTries; iteration++ {
 		// Check if context was cancelled
 		select {
 		case <-ctx.Done():
-			return &DeckResult{
+			return &RunDeckResult{
 				DeckID:   deckID,
 				Message:  fmt.Sprintf("Deck %d: Cancelled after %d iterations", deckID, iteration-1),
 				Tries:    iteration - 1,
@@ -72,7 +72,7 @@ func deckInstance(ctx context.Context, client *http.Client, deckID int) (*DeckRe
 		// Check if Royal Flush
 		isRoyalFlush := checkRoyalFlush(deckState)
 		if isRoyalFlush {
-			return &DeckResult{
+			return &RunDeckResult{
 				DeckID:   deckID,
 				Message:  fmt.Sprintf("Deck %d: Royal Flush found!", deckID),
 				Tries:    iteration,
@@ -84,7 +84,7 @@ func deckInstance(ctx context.Context, client *http.Client, deckID int) (*DeckRe
 		// Check if Straight Flush
 		isStraightFlush := checkStraightFlush(deckState)
 		if isStraightFlush {
-			return &DeckResult{
+			return &RunDeckResult{
 				DeckID:   deckID,
 				Message:  fmt.Sprintf("Deck %d: Straight Flush found!", deckID),
 				Tries:    iteration,
@@ -96,7 +96,7 @@ func deckInstance(ctx context.Context, client *http.Client, deckID int) (*DeckRe
 		// Check if Five of a Suit
 		hasFiveOfASuit := checkFiveOfASuit(deckState)
 		if hasFiveOfASuit {
-			return &DeckResult{
+			return &RunDeckResult{
 				DeckID:   deckID,
 				Message:  fmt.Sprintf("Deck %d: Five of a Suit found!", deckID),
 				Tries:    iteration,
@@ -112,7 +112,7 @@ func deckInstance(ctx context.Context, client *http.Client, deckID int) (*DeckRe
 		}
 	}
 
-	return &DeckResult{
+	return &RunDeckResult{
 		DeckID:   deckID,
 		Message:  fmt.Sprintf("Deck %d: No winning hand found after %d tries", deckID, maxTries),
 		Tries:    maxTries,
@@ -136,7 +136,7 @@ func race(decks int) error {
 	defer cancel()
 
 	// Create a channel to receive results
-	resultChan := make(chan *DeckResult, decks)
+	resultChan := make(chan *RunDeckResult, decks)
 	var wg sync.WaitGroup
 
 	// Start concurrent deck instances
@@ -144,9 +144,9 @@ func race(decks int) error {
 		wg.Add(1)
 		go func(deckID int) {
 			defer wg.Done()
-			result, err := deckInstance(ctx, client, deckID)
+			result, err := runDeck(ctx, client, deckID)
 			if err != nil {
-				result = &DeckResult{
+				result = &RunDeckResult{
 					DeckID:   deckID,
 					Message:  fmt.Sprintf("Deck %d: Error occurred", deckID),
 					Tries:    0,
@@ -154,14 +154,8 @@ func race(decks int) error {
 					Error:    err,
 				}
 			}
-
-			// Try to send result (non-blocking)
-			select {
-			case resultChan <- result:
-				// Send successful
-			case <-ctx.Done():
-				// Context cancelled, don't send
-			}
+			// always send result; cancellation handled by runDeck
+			resultChan <- result
 		}(i)
 	}
 
@@ -171,26 +165,22 @@ func race(decks int) error {
 		close(resultChan)
 	}()
 
-	var firstWinner *DeckResult
-	allResults := make([]*DeckResult, 0, decks)
+	var firstWinner *RunDeckResult
+	allResults := make([]*RunDeckResult, 0, decks)
 
 	// Collect results
 	for result := range resultChan {
 		allResults = append(allResults, result)
-
-		// Check if this is not cancelled, no error, and found a match
 		if result.Error == nil && !strings.Contains(result.Message, "No winning match") && !strings.Contains(result.Message, "Cancelled") {
 			if firstWinner == nil {
+				cancel() // Stop other decks
 				firstWinner = result
-				fmt.Printf("\nWinner: %s\n", result.Message)
-				cancel() // Cancel other goroutines
 			}
 		}
 	}
 
 	totalTime := time.Since(startTime)
 
-	// Print summary
 	fmt.Println("\n--- RACE SUMMARY ---")
 	if firstWinner != nil {
 		fmt.Printf("Winner: Deck %d\n", firstWinner.DeckID)
@@ -204,8 +194,7 @@ func race(decks int) error {
 	fmt.Printf("Total race time: %.3fs\n", totalTime.Seconds())
 	fmt.Printf("Concurrent decks: %d\n", decks)
 
-	// Print all deck results
-	fmt.Println("\n--- ALL DECK RESULTS ---")
+	fmt.Println("\n--- ALL DECKS ---")
 	for _, result := range allResults {
 		status := "COMPLETED"
 		if result.Error != nil {
