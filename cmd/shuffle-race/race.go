@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jwebster45206/tcg-api/pkg/deckdef"
@@ -15,83 +17,220 @@ import (
 
 const maxTries = 1000
 
-func deckInstance(client *http.Client) (string, int, error) {
+// DeckResult represents the result from a deck instance
+type DeckResult struct {
+	DeckID   int
+	Message  string
+	Tries    int
+	Duration time.Duration
+	Error    error
+}
+
+func deckInstance(ctx context.Context, client *http.Client, deckID int) (*DeckResult, error) {
+	startTime := time.Now()
+
 	// Create deckstate for standard playing card deck
 	deckStateID, err := createDeckState(client)
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to create deck state: %w", err)
+		return nil, fmt.Errorf("failed to create deck state: %w", err)
 	}
-	fmt.Printf("Created deck state: %s\n", deckStateID)
+	fmt.Printf("Deck %d: Created deck state: %s\n", deckID, deckStateID)
 
-	// Try up to maxTries times to find a Royal Flush
+	// Try up to maxTries times to find a winning hand
 	for iteration := 1; iteration <= maxTries; iteration++ {
+		// Check if context was cancelled
+		select {
+		case <-ctx.Done():
+			return &DeckResult{
+				DeckID:   deckID,
+				Message:  fmt.Sprintf("Deck %d: Cancelled after %d iterations", deckID, iteration-1),
+				Tries:    iteration - 1,
+				Duration: time.Since(startTime),
+				Error:    ctx.Err(),
+			}, nil
+		default:
+		}
+
 		// Shuffle the deck
 		err = shuffleDeck(client, deckStateID)
 		if err != nil {
-			return "", 0, fmt.Errorf("failed to shuffle deck: %w", err)
+			return nil, fmt.Errorf("failed to shuffle deck: %w", err)
 		}
 
 		// Draw 5 cards
 		err = drawCards(client, deckStateID, "draw", "player:1", 5)
 		if err != nil {
-			return "", 0, fmt.Errorf("failed to draw cards: %w", err)
+			return nil, fmt.Errorf("failed to draw cards: %w", err)
 		}
 
 		deckState, err := getDeckState(client, deckStateID)
 		if err != nil {
-			return "", 0, fmt.Errorf("failed to get deck state: %w", err)
+			return nil, fmt.Errorf("failed to get deck state: %w", err)
 		}
 		// printPlayerHand(deckState)
 
 		// Check if Royal Flush
 		isRoyalFlush := checkRoyalFlush(deckState)
 		if isRoyalFlush {
-			return "Royal Flush", iteration, nil
+			return &DeckResult{
+				DeckID:   deckID,
+				Message:  fmt.Sprintf("Deck %d: Royal Flush found!", deckID),
+				Tries:    iteration,
+				Duration: time.Since(startTime),
+				Error:    nil,
+			}, nil
 		}
 
 		// Check if Straight Flush
 		isStraightFlush := checkStraightFlush(deckState)
 		if isStraightFlush {
-			return "Straight Flush", iteration, nil
+			return &DeckResult{
+				DeckID:   deckID,
+				Message:  fmt.Sprintf("Deck %d: Straight Flush found!", deckID),
+				Tries:    iteration,
+				Duration: time.Since(startTime),
+				Error:    nil,
+			}, nil
 		}
 
 		// Check if Five of a Suit
 		hasFiveOfASuit := checkFiveOfASuit(deckState)
 		if hasFiveOfASuit {
-			return "Five of a Suit", iteration, nil
+			return &DeckResult{
+				DeckID:   deckID,
+				Message:  fmt.Sprintf("Deck %d: Five of a Suit found!", deckID),
+				Tries:    iteration,
+				Duration: time.Since(startTime),
+				Error:    nil,
+			}, nil
 		}
 
 		// Return 5 cards to draw pile for next iteration
 		err = drawCards(client, deckStateID, "player:1", "draw", 5)
 		if err != nil {
-			return "", 0, fmt.Errorf("failed to return cards to draw pile: %w", err)
+			return nil, fmt.Errorf("failed to return cards to draw pile: %w", err)
 		}
 	}
-	return fmt.Sprintf("No winning hand found after %d tries", maxTries), maxTries, nil
+
+	return &DeckResult{
+		DeckID:   deckID,
+		Message:  fmt.Sprintf("Deck %d: No winning hand found after %d tries", deckID, maxTries),
+		Tries:    maxTries,
+		Duration: time.Since(startTime),
+		Error:    nil,
+	}, nil
 }
 
 func race(decks int) error {
-	if decks != 1 {
-		return fmt.Errorf("only 1 deck supported for now")
+	if decks < 1 {
+		return fmt.Errorf("at least 1 deck required")
 	}
 
 	client := newHTTPClient()
 
-	fmt.Println("Starting shuffle race with", decks, "deck(s)...")
+	fmt.Printf("Starting shuffle race with %d concurrent deck instances...\n", decks)
 	startTime := time.Now()
 
-	msg, tries, err := deckInstance(client)
-	if err != nil {
-		return fmt.Errorf("shuffle and check failed: %w", err)
+	// Create context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create a channel to receive results
+	resultChan := make(chan *DeckResult, decks)
+	var wg sync.WaitGroup
+
+	// Start concurrent deck instances
+	for i := 1; i <= decks; i++ {
+		wg.Add(1)
+		go func(deckID int) {
+			defer wg.Done()
+			result, err := deckInstance(ctx, client, deckID)
+			if err != nil {
+				result = &DeckResult{
+					DeckID:   deckID,
+					Message:  fmt.Sprintf("Deck %d: Error occurred", deckID),
+					Tries:    0,
+					Duration: time.Since(startTime),
+					Error:    err,
+				}
+			}
+
+			// Try to send result (non-blocking)
+			select {
+			case resultChan <- result:
+				// Send successful
+			case <-ctx.Done():
+				// Context cancelled, don't send
+			}
+		}(i)
 	}
-	fmt.Println(msg)
-	fmt.Printf("Total tries: %d\n", tries)
-	fmt.Printf("Elapsed time: %.3fs\n", time.Since(startTime).Seconds())
+
+	// Channel cleanup when waitgroup is done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	var firstWinner *DeckResult
+	allResults := make([]*DeckResult, 0, decks)
+
+	// Collect results
+	for result := range resultChan {
+		allResults = append(allResults, result)
+
+		// Check if this is not cancelled, no error, and found a match
+		if result.Error == nil && !strings.Contains(result.Message, "No winning match") && !strings.Contains(result.Message, "Cancelled") {
+			if firstWinner == nil {
+				firstWinner = result
+				fmt.Printf("\nWinner: %s\n", result.Message)
+				cancel() // Cancel other goroutines
+			}
+		}
+	}
+
+	totalTime := time.Since(startTime)
+
+	// Print summary
+	fmt.Println("\n--- RACE SUMMARY ---")
+	if firstWinner != nil {
+		fmt.Printf("Winner: Deck %d\n", firstWinner.DeckID)
+		fmt.Printf("Match Type: %s\n", extractHandType(firstWinner.Message))
+		fmt.Printf("Tries: %d\n", firstWinner.Tries)
+		fmt.Printf("Time: %.3fs\n", firstWinner.Duration.Seconds())
+	} else {
+		fmt.Println("No winner found")
+	}
+
+	fmt.Printf("Total race time: %.3fs\n", totalTime.Seconds())
+	fmt.Printf("Concurrent decks: %d\n", decks)
+
+	// Print all deck results
+	fmt.Println("\n--- ALL DECK RESULTS ---")
+	for _, result := range allResults {
+		status := "COMPLETED"
+		if result.Error != nil {
+			status = "ERROR"
+		} else if strings.Contains(result.Message, "Cancelled") {
+			status = "CANCELLED"
+		}
+		fmt.Printf("Deck %d: %s - %s (%.3fs, %d tries)\n",
+			result.DeckID, status, result.Message, result.Duration.Seconds(), result.Tries)
+	}
 
 	return nil
 }
 
-// getDeckState retrieves a deck state by ID using the API
+// extractHandType extracts the hand type from a result message
+func extractHandType(message string) string {
+	if strings.Contains(message, "Royal Flush") {
+		return "Royal Flush"
+	} else if strings.Contains(message, "Straight Flush") {
+		return "Straight Flush"
+	} else if strings.Contains(message, "Five of a Suit") {
+		return "Five of a Suit"
+	}
+	return "Unknown"
+} // getDeckState retrieves a deck state by ID using the API
 func getDeckState(client *http.Client, deckStateID string) (*deckstate.DeckState, error) {
 	apiURL := APIBaseURL + "/v1/deckstates/" + deckStateID
 	req, err := http.NewRequest("GET", apiURL, nil)
@@ -220,8 +359,8 @@ func createDeckState(client *http.Client) (string, error) {
 	}
 
 	fmt.Println("Creating deck state...")
-	fmt.Printf("  Deck ID: %s\n", request.DeckID)
-	fmt.Printf("  Player Count: %d\n", request.PlayerCount)
+	// fmt.Printf("  Deck ID: %s\n", request.DeckID)
+	// fmt.Printf("  Player Count: %d\n", request.PlayerCount)
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
@@ -258,16 +397,6 @@ func createDeckState(client *http.Client) (string, error) {
 	}
 
 	return response.ID, nil
-}
-
-// printPlayerHand prints the cards in the player's hand
-func printPlayerHand(deckState *deckstate.DeckState) {
-	playingCards := extractPlayingCards(deckState, "player:1")
-	names := make([]string, len(playingCards))
-	for i, card := range playingCards {
-		names[i] = card.GetName()
-	}
-	fmt.Printf("Cards: %s\n", strings.Join(names, ", "))
 }
 
 var royalFlushRankings = map[int]bool{1: true, 10: true, 11: true, 12: true, 13: true}
@@ -349,13 +478,6 @@ func checkFiveOfASuit(deckState *deckstate.DeckState) bool {
 		}
 	}
 	return false
-}
-
-// formatWinMessage creates a formatted success message with timing and iteration info
-func formatWinMessage(handType string, iteration int, startTime time.Time) string {
-	duration := time.Since(startTime)
-	return fmt.Sprintf("Winning hand found: Tries: %d, Time: %.1fs, Hand: %s",
-		iteration, duration.Seconds(), handType)
 }
 
 // extractPlayingCards extracts playingCard data from a zone
