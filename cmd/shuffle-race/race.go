@@ -27,6 +27,7 @@ type RunDeckResult struct {
 
 func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResult, error) {
 	startTime := time.Now()
+	const drawCount = 5
 
 	// Create an instance of a standard playing card deck,
 	// with a single draw pile and player hand
@@ -58,7 +59,7 @@ func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResu
 		}
 
 		// Draw 5 cards
-		err = drawCards(client, deckStateID, "draw", "player:1", 5)
+		err = drawCards(client, deckStateID, "draw", "player:1", drawCount)
 		if err != nil {
 			return nil, fmt.Errorf("failed to draw cards: %w", err)
 		}
@@ -67,9 +68,9 @@ func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResu
 		if err != nil {
 			return nil, fmt.Errorf("failed to get deck state: %w", err)
 		}
-		// printPlayerHand(deckState)
 
-		// Check if Royal Flush
+		// check for return conditions
+
 		isRoyalFlush := checkRoyalFlush(deckState)
 		if isRoyalFlush {
 			return &RunDeckResult{
@@ -81,7 +82,6 @@ func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResu
 			}, nil
 		}
 
-		// Check if Straight Flush
 		isStraightFlush := checkStraightFlush(deckState)
 		if isStraightFlush {
 			return &RunDeckResult{
@@ -93,7 +93,6 @@ func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResu
 			}, nil
 		}
 
-		// Check if Five of a Suit
 		hasFiveOfASuit := checkFiveOfASuit(deckState)
 		if hasFiveOfASuit {
 			return &RunDeckResult{
@@ -105,8 +104,8 @@ func runDeck(ctx context.Context, client *http.Client, deckID int) (*RunDeckResu
 			}, nil
 		}
 
-		// Return 5 cards to draw pile for next iteration
-		err = drawCards(client, deckStateID, "player:1", "draw", 5)
+		// return cards to draw pile for next iteration
+		err = drawCards(client, deckStateID, "player:1", "draw", drawCount)
 		if err != nil {
 			return nil, fmt.Errorf("failed to return cards to draw pile: %w", err)
 		}
