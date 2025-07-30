@@ -12,7 +12,6 @@ import (
 )
 
 func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Filter, sorts []query.SortOption, pageSize int, pageNum int) ([]*deckdef.PlayingCard, error) {
-	// Start building the query with joins
 	queryBuilder := squirrel.Select(
 		"c.uuid",
 		"c.name",
@@ -27,7 +26,6 @@ func (m *MySQLStorage) ListPlayingCards(ctx context.Context, filters []query.Fil
 		Join("playing_cards pc ON c.id = pc.card_id").
 		PlaceholderFormat(squirrel.Question)
 
-	// Mandatory filters
 	queryBuilder = queryBuilder.
 		Where(squirrel.Eq{"c.card_type_id": 2}). // Only playing cards
 		Where(squirrel.Eq{"c.deleted": false})   // Only non-deleted records

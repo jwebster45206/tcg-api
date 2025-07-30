@@ -32,7 +32,7 @@ func main() {
 		os.Exit(0)
 
 	case "race":
-		decks := 1
+		decks := 3
 		if len(os.Args) > 2 {
 			if d, err := strconv.Atoi(os.Args[2]); err == nil {
 				decks = d
