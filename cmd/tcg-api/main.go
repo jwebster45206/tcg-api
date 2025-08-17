@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/jwebster45206/tcg-api/internal/auth"
 	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 	"github.com/jwebster45206/tcg-api/internal/state"
@@ -123,20 +124,31 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 
 	mux.HandleFunc("/health", handlers.NewHealthHandler(sto, redisClient))
 
-	mux.Handle("/v1/image-cards", imageCardsHandler)
-	mux.Handle("/v1/image-cards/", imageCardsHandler)
+	protected := http.NewServeMux()
+	protected.Handle("/v1/image-cards", imageCardsHandler)
+	protected.Handle("/v1/image-cards/", imageCardsHandler)
+	protected.Handle("/v1/playing-cards", playingCardsHandler)
+	protected.Handle("/v1/playing-cards/", playingCardsHandler)
+	protected.Handle("/v1/game-cards", gameCardsHandler)
+	protected.Handle("/v1/game-cards/", gameCardsHandler)
+	protected.Handle("/v1/decks", deckHandler)
+	protected.Handle("/v1/decks/", deckHandler)
+	protected.Handle("/v1/deckstates", deckStateHandler)
+	protected.Handle("/v1/deckstates/", deckStateHandler)
 
-	mux.Handle("/v1/playing-cards", playingCardsHandler)
-	mux.Handle("/v1/playing-cards/", playingCardsHandler)
-
-	mux.Handle("/v1/game-cards", gameCardsHandler)
-	mux.Handle("/v1/game-cards/", gameCardsHandler)
-
-	mux.Handle("/v1/decks", deckHandler)
-	mux.Handle("/v1/decks/", deckHandler)
-
-	mux.Handle("/v1/deckstates", deckStateHandler)
-	mux.Handle("/v1/deckstates/", deckStateHandler)
+	// mount health open, everything else behind auth if enabled
+	if cfg.Auth.Enabled {
+		verifier := auth.HS256IssuerVerifier{
+			Issuer:     cfg.Auth.Issuer,
+			Audience:   cfg.Auth.Audience,
+			CurrentKID: cfg.Auth.CurrentKID,
+			Keys:       cfg.Auth.Keys,
+		}
+		authmw := auth.Middleware{Verifier: verifier, Logger: logger}
+		mux.Handle("/", authmw.Handler(protected))
+	} else {
+		mux.Handle("/", protected)
+	}
 
 	return mux
 }
