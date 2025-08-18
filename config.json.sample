@@ -18,5 +18,16 @@
   "logger": {
     "level": "info",
     "format": "json"
+  },
+  "auth": {
+    "enabled": true,
+    "issuer": "tcg-api",
+    "audience": "tcg-api-clients",
+    "algorithm": "HS256",
+    "access_ttl_seconds": 3600,
+    "current_kid": "default",
+    "keys": {
+      "default": "CHANGE_ME_LONG_RANDOM_SECRET"
+    }
   }
 }
