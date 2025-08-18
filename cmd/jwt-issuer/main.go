@@ -80,7 +80,6 @@ func main() {
 	_ = claims
 }
 
-// ...existing code...
 func splitList(s string) []string {
 	s = strings.TrimSpace(s)
 	if s == "" {
