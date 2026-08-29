@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 	"github.com/jwebster45206/tcg-api/internal/state"

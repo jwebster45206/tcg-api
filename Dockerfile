@@ -1,12 +1,11 @@
 # Build stage
-FROM golang:1.24.3-alpine AS builder
+FROM golang:1.26.7-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Install dependencies with current versions
-RUN apk add --no-cache \
-    ca-certificates=20241121-r2
+# Install dependencies
+RUN apk add --no-cache ca-certificates
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -18,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tcg-api ./cmd/tcg-api
+RUN CGO_ENABLED=0 GOOS=linux go build -o tcg-api ./cmd/tcg-api
 
 # Production stage
 FROM alpine:latest
