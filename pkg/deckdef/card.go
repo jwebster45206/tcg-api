@@ -85,12 +85,6 @@ func (cwq *CardWithQuantity) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		cwq.Card = &card
-	case TypeGameCard:
-		var card GameCard
-		if err := json.Unmarshal(temp.Card, &card); err != nil {
-			return err
-		}
-		cwq.Card = &card
 	default:
 		return fmt.Errorf("unknown card type: %s", cardTypeInfo.CardType)
 	}

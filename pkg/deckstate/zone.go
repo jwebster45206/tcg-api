@@ -315,12 +315,6 @@ func (c *CardInZone) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		c.Card = &card
-	case deckdef.TypeGameCard:
-		var card deckdef.GameCard
-		if err := json.Unmarshal(temp.Card, &card); err != nil {
-			return err
-		}
-		c.Card = &card
 	default:
 		return fmt.Errorf("unknown card type: %s", cardTypeInfo.CardType)
 	}

@@ -15,11 +15,10 @@ import (
 )
 
 const (
-	errStrBadRequest     = "bad_request"
-	errStrValidation     = "validation_error"
-	errStrInternal       = "internal_error"
-	errStrNotFound       = "not_found"
-	errStrNotImplemented = "not_implemented"
+	errStrBadRequest = "bad_request"
+	errStrValidation = "validation_error"
+	errStrInternal   = "internal_error"
+	errStrNotFound   = "not_found"
 )
 
 // ParseFilters parses filter parameters from an HTTP request using filter array syntax
