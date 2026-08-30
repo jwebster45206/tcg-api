@@ -314,15 +314,6 @@ func (m *MySQLStorage) ListDeckCards(ctx context.Context, deckID uuid.UUID) ([]*
 				FrontImageURL: safeString(frontImageURL),
 				BackImageURL:  safeString(backImageURL),
 			}
-		case deckdef.TypeGameCard:
-			// For game cards, we'd need to fetch additional fields from game_cards table
-			// For now, create a basic game card (this would need expansion when game_cards table is added)
-			cardInterface = &deckdef.GameCard{
-				ID:            cardUUID,
-				Name:          name,
-				FrontImageURL: safeString(frontImageURL),
-				BackImageURL:  safeString(backImageURL),
-			}
 		default:
 			return nil, fmt.Errorf("unknown card type: %s", cardType)
 		}

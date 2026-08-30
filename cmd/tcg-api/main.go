@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/jwebster45206/tcg-api/internal/config"
 	"github.com/jwebster45206/tcg-api/internal/handlers"
 	"github.com/jwebster45206/tcg-api/internal/state"
 	"github.com/jwebster45206/tcg-api/internal/storage"
+	"github.com/redis/go-redis/v9"
 )
 
 // loadConfig loads configuration from config.json file
@@ -115,7 +115,6 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 	})
 	state := state.NewRedisStorage(redisClient)
 
-	gameCardsHandler := handlers.NewGameCardsHandler(sto, logger)
 	imageCardsHandler := handlers.NewImageCardsHandler(sto, logger)
 	playingCardsHandler := handlers.NewPlayingCardsHandler(sto, logger)
 	deckHandler := handlers.NewDecksHandler(sto, logger)
@@ -128,9 +127,6 @@ func setupRoutes(cfg config.Config, logger *slog.Logger) *http.ServeMux {
 
 	mux.Handle("/v1/playing-cards", playingCardsHandler)
 	mux.Handle("/v1/playing-cards/", playingCardsHandler)
-
-	mux.Handle("/v1/game-cards", gameCardsHandler)
-	mux.Handle("/v1/game-cards/", gameCardsHandler)
 
 	mux.Handle("/v1/decks", deckHandler)
 	mux.Handle("/v1/decks/", deckHandler)

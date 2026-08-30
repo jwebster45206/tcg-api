@@ -18,7 +18,6 @@ var (
 // MockStorage implements Storage interface for testing and development
 type MockStorage struct {
 	mu           sync.RWMutex
-	gameCards    map[uuid.UUID]*deckdef.GameCard
 	decks        map[uuid.UUID]*deckdef.Deck
 	imageCards   map[uuid.UUID]*deckdef.ImageCard
 	playingCards map[uuid.UUID]*deckdef.PlayingCard
@@ -28,7 +27,6 @@ type MockStorage struct {
 // NewMockStorage creates a new MockStorage instance with some sample data
 func NewMockStorage() Storage {
 	storage := &MockStorage{
-		gameCards:    make(map[uuid.UUID]*deckdef.GameCard),
 		decks:        make(map[uuid.UUID]*deckdef.Deck),
 		imageCards:   make(map[uuid.UUID]*deckdef.ImageCard),
 		playingCards: make(map[uuid.UUID]*deckdef.PlayingCard),
@@ -77,16 +75,6 @@ func NewMockStorage() Storage {
 		},
 	}
 
-	// Add some sample game cards
-	sampleGameCards := []*deckdef.GameCard{
-		{
-			ID:            uuid.MustParse("550e8400-e29b-41d4-a716-446655440005"),
-			Name:          "Sample Game Card",
-			FrontImageURL: "https://example.com/game-front.jpg",
-			BackImageURL:  "https://example.com/game-back.jpg",
-		},
-	}
-
 	// Populate the mock storage with sample data
 	for _, card := range samplePlayingCards {
 		storage.playingCards[card.ID] = card
@@ -94,88 +82,12 @@ func NewMockStorage() Storage {
 	for _, card := range sampleImageCards {
 		storage.imageCards[card.ID] = card
 	}
-	for _, card := range sampleGameCards {
-		storage.gameCards[card.ID] = card
-	}
 
 	return storage
 }
 
 // Ping implements health check for mock storage (always returns nil)
 func (ms *MockStorage) Ping(ctx context.Context) error {
-	return nil
-}
-
-func (m *MockStorage) ListGameCards(ctx context.Context, cardType string) ([]*deckdef.GameCard, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	switch cardType {
-	case "gamecard":
-		cards := make([]*deckdef.GameCard, 0, len(m.gameCards))
-		for _, card := range m.gameCards {
-			// Create a copy to avoid modifying the original
-			cardCopy := *card
-			cards = append(cards, &cardCopy)
-		}
-		return cards, nil
-	default:
-		return nil, errors.New("unsupported card type")
-	}
-}
-
-func (m *MockStorage) GetGameCard(ctx context.Context, id uuid.UUID) (*deckdef.GameCard, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	card, exists := m.gameCards[id]
-	if !exists {
-		return nil, ErrNotFound
-	}
-	// Return a copy to avoid modifying the original
-	cardCopy := *card
-	return &cardCopy, nil
-}
-
-// CreateGameCard adds a new card to storage
-func (m *MockStorage) CreateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if card.ID == uuid.Nil {
-		card.ID = uuid.New()
-	}
-	if _, exists := m.gameCards[card.ID]; exists {
-		return nil, errors.New("card already exists")
-	}
-
-	// Store a copy to avoid external modifications
-	cardCopy := card
-	m.gameCards[card.ID] = &cardCopy
-
-	return &cardCopy, nil
-}
-
-func (m *MockStorage) UpdateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if _, exists := m.gameCards[card.ID]; !exists {
-		return nil, ErrNotFound
-	}
-
-	// Store a copy to avoid external modifications
-	cardCopy := card
-	m.gameCards[card.ID] = &cardCopy
-	return &cardCopy, nil
-}
-
-func (m *MockStorage) DeleteGameCard(ctx context.Context, id uuid.UUID) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if _, exists := m.gameCards[id]; !exists {
-		return ErrNotFound
-	}
-	delete(m.gameCards, id)
 	return nil
 }
 
@@ -456,15 +368,6 @@ func (m *MockStorage) SetDeckCards(ctx context.Context, deckID uuid.UUID, cards 
 		}
 
 		if foundCard == nil {
-			for _, gc := range m.gameCards {
-				if gc.ID == cardInput.Card.ID {
-					foundCard = gc
-					break
-				}
-			}
-		}
-
-		if foundCard == nil {
 			return fmt.Errorf("card not found: %s", cardInput.Card.ID)
 		}
 
@@ -496,14 +399,6 @@ func (m *MockStorage) GetCardsByIDs(ctx context.Context, cardIDs []uuid.UUID) ([
 
 		if !found {
 			if card, exists := m.imageCards[cardID]; exists {
-				cardCopy := *card
-				cards = append(cards, &cardCopy)
-				found = true
-			}
-		}
-
-		if !found {
-			if card, exists := m.gameCards[cardID]; exists {
 				cardCopy := *card
 				cards = append(cards, &cardCopy)
 				found = true

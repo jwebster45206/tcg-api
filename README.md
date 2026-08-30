@@ -136,18 +136,16 @@ Cards are structs that implement `CardInterface`. This allows a deck to contain 
 - `GetCardType()`
 
 Card Types are extendable. The following are available currently:
-- **ImageCard**: Simple cards with just imagery and basic info (name, description, images) ✅
-- **PlayingCard**: Standard playing cards (suit, value, images) ✅
-- **GameCard**: Generic TCG card for demo (partial implementation)
+- **ImageCard**: Simple cards with just imagery and basic info (name, description, images)
+- **PlayingCard**: Standard playing cards (suit, value, images)
 
 #### Decks
 A deck is an un-ordered collection of structs that implement CardInterface. 
 
 #### Endpoints
-- `/v1/image-cards` - Management for the simplest base card type ✅
-- `/v1/playing-cards` - Management for traditional playing cards ✅
-- `/v1/game-cards` - Generic TCG card management (partial implementation)
-- `/v1/decks` - Deck management ✅
+- `/v1/image-cards` - Management for the simplest base card type
+- `/v1/playing-cards` - Management for traditional playing cards
+- `/v1/decks` - Deck management
 
 ### Deck State
 

@@ -34,13 +34,6 @@ type Storage interface {
 	CreatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error)
 	UpdatePlayingCard(ctx context.Context, card deckdef.PlayingCard) (*deckdef.PlayingCard, error)
 	DeletePlayingCard(ctx context.Context, id uuid.UUID) error
-
-	// GameCard operations
-	ListGameCards(ctx context.Context, cardType string) ([]*deckdef.GameCard, error)
-	GetGameCard(ctx context.Context, id uuid.UUID) (*deckdef.GameCard, error)
-	CreateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error)
-	UpdateGameCard(ctx context.Context, card deckdef.GameCard) (*deckdef.GameCard, error)
-	DeleteGameCard(ctx context.Context, id uuid.UUID) error
 }
 
 // Helper function to safely dereference nullable string pointers
